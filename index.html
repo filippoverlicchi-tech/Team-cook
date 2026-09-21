@@ -242,7 +242,12 @@ function renderLogin() {
   const btn = el("button", { class: "btn-primary" }, "Accedi con Google");
   btn.addEventListener("click", () => {
     banner = null;
-    fauth.signInWithRedirect(googleProvider);
+    fauth.signInWithPopup(googleProvider).catch((e) => {
+      if (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") return;
+      console.error("popup sign-in failed", e);
+      banner = { type: "error", text: "Accesso con Google non riuscito (" + e.code + ")." };
+      renderCurrent();
+    });
   });
   const note = el("p", { style: { fontSize: "11px", color: "var(--ink-soft)", marginTop: "12px", opacity: .75 } },
     "Resti connesso su questo dispositivo finché non esci.");
