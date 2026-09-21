@@ -116,7 +116,9 @@ const CATEGORIES = [
   { key: "primi", label: "Primi" },
   { key: "secondi", label: "Secondi" },
   { key: "contorni", label: "Contorni" },
+  { key: "dolci", label: "Dolci" },
 ];
+const ADMIN_EMAIL = "filippo.verlicchi@gmail.com";
 
 function rid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function el(tag, attrs = {}, children = []) {
@@ -187,6 +189,7 @@ function stopAlarm(id) {
 /* ---------------- state ---------------- */
 let AUTH_USER = null;
 let AUTH_PHOTO = null;
+let AUTH_EMAIL = null;
 let recipes = [];
 let route = { screen: "login", selectedId: null };
 let filter = "all";
@@ -204,6 +207,7 @@ function initFirebase() {
       currentUid = user.uid;
       AUTH_USER = user.displayName || user.email || "Utente";
       AUTH_PHOTO = user.photoURL || null;
+      AUTH_EMAIL = user.email || null;
       if (route.screen === "login") route = { screen: "home", selectedId: null };
       subscribeRecipes();
       render();
@@ -211,6 +215,7 @@ function initFirebase() {
       currentUid = null;
       AUTH_USER = null;
       AUTH_PHOTO = null;
+      AUTH_EMAIL = null;
       route = { screen: "login", selectedId: null };
       render();
     }
@@ -651,7 +656,7 @@ function renderDetail() {
 
   const titleRow = el("div", { class: "row", style: { justifyContent: "space-between", alignItems: "flex-start" } });
   titleRow.appendChild(el("h1", { class: "display", style: { fontSize: "23px", margin: "2px 0 2px" } }, rec.name));
-  if (rec.authorUid && rec.authorUid === currentUid) {
+  if ((rec.authorUid && rec.authorUid === currentUid) || AUTH_EMAIL === ADMIN_EMAIL) {
     let confirming = false, confirmTimeout = null;
     const del = el("button", { class: "icon-btn", html: ICONS.trash, style: { color: "var(--ink-soft)", marginTop: "4px" } });
     del.addEventListener("click", () => {
