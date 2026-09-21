@@ -79,6 +79,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const fdb = firebase.firestore();
 const fauth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
 let currentUid = null;
 
 /* ---------------- utilities ---------------- */
@@ -173,9 +174,9 @@ function stopAlarm(id) {
 
 /* ---------------- state ---------------- */
 let AUTH_USER = null;
-try { AUTH_USER = localStorage.getItem("cookido_user") || null; } catch (e) {}
+let AUTH_PHOTO = null;
 let recipes = [];
-let route = { screen: AUTH_USER ? "home" : "login", selectedId: null };
+let route = { screen: "login", selectedId: null };
 let filter = "all";
 let banner = null;
 let draft = null;
@@ -186,16 +187,26 @@ const app = document.getElementById("app");
 
 /* ---------------- persistence ---------------- */
 function initFirebase() {
+  fauth.getRedirectResult().catch((e) => {
+    console.error("redirect sign-in failed", e);
+    banner = { type: "error", text: "Accesso con Google non riuscito (" + e.code + ")." };
+    renderCurrent();
+  });
   fauth.onAuthStateChanged((user) => {
     if (user) {
       currentUid = user.uid;
+      AUTH_USER = user.displayName || user.email || "Utente";
+      AUTH_PHOTO = user.photoURL || null;
+      if (route.screen === "login") route = { screen: "home", selectedId: null };
       subscribeRecipes();
+      render();
+    } else {
+      currentUid = null;
+      AUTH_USER = null;
+      AUTH_PHOTO = null;
+      route = { screen: "login", selectedId: null };
+      render();
     }
-  });
-  fauth.signInAnonymously().catch((e) => {
-    console.error("anon auth failed", e);
-    banner = { type: "error", text: "Connessione al database non riuscita (" + e.code + "). Riprova a ricaricare la pagina." };
-    if (route.screen === "home") renderHome();
   });
 }
 
@@ -220,27 +231,22 @@ function subscribeRecipes() {
 /* ---------------- login ---------------- */
 function renderLogin() {
   app.innerHTML = "";
-  let name = "";
   const wrap = el("div", { style: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 32px", textAlign: "center" } }, [
     el("div", { html: ICONS.chef, style: { color: "var(--saffron)" } }),
     el("h1", { class: "display", style: { fontSize: "28px", margin: "16px 0 2px" } }, "La Tua Cucina"),
     el("p", { style: { fontSize: "13px", color: "var(--ink-soft)", marginBottom: "28px" } }, "Ricette, passo dopo passo"),
   ]);
   const box = el("div", { style: { width: "100%", maxWidth: "300px" } });
-  const input = el("input", { class: "field", placeholder: "Il tuo nome", style: { marginBottom: "10px" } });
-  input.addEventListener("input", (e) => { name = e.target.value; btn.disabled = !name.trim(); });
-  const btn = el("button", { class: "btn-primary" }, "Entra");
-  btn.disabled = true;
+  const bn = bannerNode();
+  if (bn) box.appendChild(bn);
+  const btn = el("button", { class: "btn-primary" }, "Accedi con Google");
   btn.addEventListener("click", () => {
-    if (!name.trim()) return;
-    AUTH_USER = name.trim();
-    try { localStorage.setItem("cookido_user", AUTH_USER); } catch (e) {}
-    route = { screen: "home", selectedId: null };
-    render();
+    banner = null;
+    fauth.signInWithRedirect(googleProvider);
   });
   const note = el("p", { style: { fontSize: "11px", color: "var(--ink-soft)", marginTop: "12px", opacity: .75 } },
-    "Nessun account richiesto: il nome serve solo per firmare le tue ricette.");
-  box.append(input, btn, note);
+    "Resti connesso su questo dispositivo finché non esci.");
+  box.append(btn, note);
   wrap.appendChild(box);
   app.appendChild(wrap);
 }
@@ -303,10 +309,7 @@ function recipeCard(r) {
 function renderHome() {
   app.innerHTML = "";
   app.appendChild(header({ title: "Le tue ricette", user: AUTH_USER, onLogout: () => {
-    AUTH_USER = null;
-    try { localStorage.removeItem("cookido_user"); } catch (e) {}
-    route = { screen: "login", selectedId: null };
-    render();
+    fauth.signOut();
   }}));
   const body = el("div", { style: { padding: "0 20px" } });
   const bn = bannerNode();
