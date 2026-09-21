@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.13.2/firebase-app-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.13.2/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
     --bg: #F5F0E6;
@@ -80,7 +81,18 @@ firebase.initializeApp(firebaseConfig);
 const fdb = firebase.firestore();
 const fauth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
+const GOOGLE_CLIENT_ID = "913809001914-u3ebjj43kbkmuf9gv55lppbdlkg35gk4.apps.googleusercontent.com";
 let currentUid = null;
+
+function handleGoogleCredential(response) {
+  banner = null;
+  const cred = firebase.auth.GoogleAuthProvider.credential(response.credential);
+  fauth.signInWithCredential(cred).catch((e) => {
+    console.error("signInWithCredential failed", e);
+    banner = { type: "error", text: "Accesso con Google non riuscito (" + e.code + ")." };
+    renderCurrent();
+  });
+}
 
 /* ---------------- utilities ---------------- */
 const ICONS = {
@@ -187,11 +199,6 @@ const app = document.getElementById("app");
 
 /* ---------------- persistence ---------------- */
 function initFirebase() {
-  fauth.getRedirectResult().catch((e) => {
-    console.error("redirect sign-in failed", e);
-    banner = { type: "error", text: "Accesso con Google non riuscito (" + e.code + ")." };
-    renderCurrent();
-  });
   fauth.onAuthStateChanged((user) => {
     if (user) {
       currentUid = user.uid;
@@ -239,21 +246,29 @@ function renderLogin() {
   const box = el("div", { style: { width: "100%", maxWidth: "300px" } });
   const bn = bannerNode();
   if (bn) box.appendChild(bn);
-  const btn = el("button", { class: "btn-primary" }, "Accedi con Google");
-  btn.addEventListener("click", () => {
-    banner = null;
-    fauth.signInWithPopup(googleProvider).catch((e) => {
-      if (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") return;
-      console.error("popup sign-in failed", e);
-      banner = { type: "error", text: "Accesso con Google non riuscito (" + e.code + ")." };
-      renderCurrent();
-    });
-  });
+  const btnSlot = el("div", { style: { display: "flex", justifyContent: "center", marginBottom: "10px", minHeight: "44px" } }, [
+    el("span", { style: { fontSize: "12px", color: "var(--ink-soft)" } }, "Caricamento accesso Google…"),
+  ]);
+  box.appendChild(btnSlot);
   const note = el("p", { style: { fontSize: "11px", color: "var(--ink-soft)", marginTop: "12px", opacity: .75 } },
     "Resti connesso su questo dispositivo finché non esci.");
-  box.append(btn, note);
+  box.appendChild(note);
   wrap.appendChild(box);
   app.appendChild(wrap);
+
+  (function tryRenderGoogleButton(attempt) {
+    if (route.screen !== "login") return;
+    if (window.google && google.accounts && google.accounts.id) {
+      btnSlot.innerHTML = "";
+      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential, auto_select: false, itp_support: true });
+      google.accounts.id.renderButton(btnSlot, { theme: "outline", size: "large", width: 280, text: "signin_with", shape: "pill" });
+    } else if (attempt < 40) {
+      setTimeout(() => tryRenderGoogleButton(attempt + 1), 150);
+    } else {
+      btnSlot.innerHTML = "";
+      btnSlot.appendChild(el("span", { style: { fontSize: "12px", color: "var(--clay)" } }, "Accesso Google non disponibile: ricarica la pagina."));
+    }
+  })(0);
 }
 
 /* ---------------- header ---------------- */
@@ -314,6 +329,7 @@ function recipeCard(r) {
 function renderHome() {
   app.innerHTML = "";
   app.appendChild(header({ title: "Le tue ricette", user: AUTH_USER, onLogout: () => {
+    if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
     fauth.signOut();
   }}));
   const body = el("div", { style: { padding: "0 20px" } });
