@@ -159,6 +159,9 @@ const ICONS = {
   alarm: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="M22 6 19 3"/></svg>',
   search: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
   edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>',
+  database: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
+  upload: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+  download: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
 };
 
 const CATEGORIES = [
@@ -371,15 +374,18 @@ function header({ title, back, onBack, user, onLogout }) {
   } else {
     const isDark = getTheme() === "dark" || (getTheme() === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
     const themeBtn = el("button", { class: "icon-btn", html: isDark ? ICONS.sun : ICONS.moon, style: { color: "var(--ink-soft)" }, onclick: toggleTheme });
+    const rightIcons = [themeBtn];
+    if (AUTH_EMAIL === ADMIN_EMAIL) {
+      const adminBtn = el("button", { class: "icon-btn", html: ICONS.database, style: { color: "var(--ink-soft)" }, onclick: () => { route = { screen: "backup", selectedId: null }; render(); } });
+      rightIcons.push(adminBtn);
+    }
+    rightIcons.push(el("button", { class: "icon-btn", html: ICONS.logout, style: { color: "var(--ink-soft)" }, onclick: onLogout }));
     h.append(
       el("div", {}, [
         el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", margin: 0 } }, "Ciao, " + user),
         el("h1", { class: "display", style: { fontSize: "24px", margin: "2px 0 0" } }, title),
       ]),
-      el("div", { class: "row", style: { gap: "4px" } }, [
-        themeBtn,
-        el("button", { class: "icon-btn", html: ICONS.logout, style: { color: "var(--ink-soft)" }, onclick: onLogout }),
-      ])
+      el("div", { class: "row", style: { gap: "4px" } }, rightIcons)
     );
   }
   return h;
@@ -397,6 +403,7 @@ function renderCurrent() {
   if (route.screen === "home") renderHome();
   else if (route.screen === "detail") renderDetail();
   else if (route.screen === "create") renderCreate();
+  else if (route.screen === "backup") renderBackup();
   else renderLogin();
 }
 
@@ -929,11 +936,114 @@ function renderDetail() {
   app.appendChild(root);
 }
 
+/* ---------------- backup / bulk import (admin) ---------------- */
+function downloadJSON(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = el("a", { href: url, download: filename, style: { display: "none" } });
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+}
+
+function renderBackup() {
+  app.innerHTML = "";
+  app.appendChild(header({ title: "Backup ricette", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
+  const body = el("div", { style: { padding: "0 20px" } });
+  const bn = bannerNode();
+  if (bn) body.appendChild(bn);
+
+  body.appendChild(el("h3", { class: "display", style: { fontSize: "16px", margin: "4px 0 8px" } }, "Esporta"));
+  body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", marginBottom: "12px" } },
+    "Scarica tutte le ricette attuali (" + recipes.length + ") in un file JSON, da tenere come copia di sicurezza."));
+  const exportBtn = el("button", { class: "btn-ghost", style: { marginBottom: "26px" } }, [el("span", { html: ICONS.download }), " Esporta backup (JSON)"]);
+  exportBtn.addEventListener("click", () => {
+    downloadJSON("cucina-backup-" + new Date().toISOString().slice(0, 10) + ".json", recipes);
+  });
+  body.appendChild(exportBtn);
+
+  body.appendChild(el("h3", { class: "display", style: { fontSize: "16px", margin: "4px 0 8px" } }, "Importa in blocco"));
+  body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", marginBottom: "12px" } },
+    "Carica un file JSON con un elenco di ricette (un backup esportato, o un file preparato apposta) per aggiungerle tutte insieme al database."));
+
+  const status = el("p", { style: { fontSize: "12.5px", color: "var(--herb)", marginBottom: "10px" } });
+  const fileLabel = el("label", { class: "btn-ghost", style: { marginBottom: "8px" } }, [el("span", { html: ICONS.upload }), " Scegli file JSON"]);
+  const fileInput = el("input", { type: "file", accept: "application/json,.json", style: { display: "none" } });
+  let pendingImport = null;
+  const confirmBtn = el("button", { class: "btn-primary", style: { display: "none" } }, "Conferma importazione");
+
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        const list = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.recipes) ? parsed.recipes : null);
+        if (!list || !list.length) throw new Error("Il file non contiene un elenco di ricette valido.");
+        const bad = list.find((r) => !r.name || !Array.isArray(r.steps) || !r.steps.length);
+        if (bad) throw new Error("Ogni ricetta deve avere almeno \"name\" e \"steps\".");
+        pendingImport = list;
+        status.style.color = "var(--herb)";
+        status.textContent = "Pronto: " + list.length + " ricette nel file.";
+        confirmBtn.textContent = "Importa " + list.length + " ricette";
+        confirmBtn.style.display = "flex";
+      } catch (err) {
+        pendingImport = null;
+        confirmBtn.style.display = "none";
+        status.style.color = "var(--clay)";
+        status.textContent = "File non valido: " + err.message;
+      }
+    };
+    reader.readAsText(file);
+  });
+  fileLabel.appendChild(fileInput);
+  body.append(fileLabel, status, confirmBtn);
+
+  confirmBtn.addEventListener("click", () => {
+    if (!pendingImport) return;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Importazione in corso…";
+    const items = pendingImport;
+    let done = 0, failed = 0;
+    const now = Date.now();
+    const writeNext = (i) => {
+      if (i >= items.length) {
+        status.style.color = failed ? "var(--clay)" : "var(--herb)";
+        status.textContent = "Fatto: " + done + " importate" + (failed ? ", " + failed + " fallite." : ".");
+        confirmBtn.style.display = "none";
+        pendingImport = null;
+        return;
+      }
+      const r = items[i];
+      const hasId = !!r.id;
+      const data = {
+        name: r.name,
+        category: CATEGORIES.some((c) => c.key === r.category) ? r.category : CATEGORIES[0].key,
+        coverImage: r.coverImage || null,
+        ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
+        steps: r.steps.map((s) => ({
+          id: s.id || rid(), text: s.text || "", hasTimer: !!s.hasTimer,
+          minutes: Number(s.minutes) || 0, seconds: Number(s.seconds) || 0, image: s.image || null,
+        })),
+        author: hasId && r.author ? r.author : AUTH_USER,
+        authorUid: hasId && r.authorUid ? r.authorUid : currentUid,
+        createdAt: hasId && r.createdAt ? r.createdAt : now + i,
+      };
+      const ref = hasId ? fdb.collection("recipes").doc(r.id) : fdb.collection("recipes").doc();
+      ref.set(data).then(() => { done++; writeNext(i + 1); }).catch((e) => { console.error(e); failed++; writeNext(i + 1); });
+    };
+    writeNext(0);
+  });
+
+  app.appendChild(body);
+}
+
 /* ---------------- boot ---------------- */
 function render() {
   if (route.screen === "login") renderLogin();
   else if (route.screen === "create") renderCreate();
   else if (route.screen === "detail") renderDetail();
+  else if (route.screen === "backup") renderBackup();
   else renderHome();
 }
 render();
