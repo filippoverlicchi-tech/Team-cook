@@ -19,6 +19,8 @@
     --saffron: #C98A2E;
     --herb: #4F7358;
     --clay: #B8451F;
+    --teal: #2E7E82;
+    --rose: #B85C7A;
     --line: rgba(43,46,39,0.14);
     --chalk-on-accent: #2B2E27;
   }
@@ -26,13 +28,13 @@
     :root:not([data-theme="light"]) {
       --bg: #262922; --card: #33362D; --card-dim: #3C3F35;
       --ink: #F5F0E6; --ink-soft: #B7B3A4; --saffron: #E3A857;
-      --herb: #86AF90; --clay: #E08363; --line: rgba(245,240,230,0.14);
+      --herb: #86AF90; --clay: #E08363; --teal: #5FB3B8; --rose: #E094AE; --line: rgba(245,240,230,0.14);
     }
   }
   :root[data-theme="dark"] {
     --bg: #262922; --card: #33362D; --card-dim: #3C3F35;
     --ink: #F5F0E6; --ink-soft: #B7B3A4; --saffron: #E3A857;
-    --herb: #86AF90; --clay: #E08363; --line: rgba(245,240,230,0.14);
+    --herb: #86AF90; --clay: #E08363; --teal: #5FB3B8; --rose: #E094AE; --line: rgba(245,240,230,0.14);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -65,8 +67,23 @@
   .banner { border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-size: 12.5px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .banner.error { background: color-mix(in srgb, var(--clay) 18%, transparent); border: 1px solid var(--clay); }
   .banner.info { background: color-mix(in srgb, var(--herb) 18%, transparent); border: 1px solid var(--herb); }
-  .fab { position: fixed; bottom: 24px; left: 50%; transform: translateX(calc(-50% + 190px)); width: 56px; height: 56px; border-radius: 999px; background: var(--saffron); color: var(--chalk-on-accent); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
-  @media (max-width: 480px) { .fab { transform: none; right: 20px; left: auto; } }
+  .fab { position: fixed; bottom: 24px; left: 50%; transform: translateX(calc(-50% + 190px)); display: flex; align-items: center; gap: 8px; padding: 15px 22px; border-radius: 999px; background: linear-gradient(135deg, var(--saffron), color-mix(in srgb, var(--saffron) 75%, #ff8a3d)); color: var(--chalk-on-accent); font-weight: 600; font-size: 14px; box-shadow: 0 10px 26px color-mix(in srgb, var(--saffron) 45%, transparent); transition: transform .12s ease; }
+  .fab:active { transform: translateX(calc(-50% + 190px)) scale(0.96); }
+  @media (max-width: 480px) { .fab { transform: none; right: 20px; left: auto; } .fab:active { transform: scale(0.96); } }
+  .search-wrap { position: relative; margin-bottom: 16px; }
+  .search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--ink-soft); pointer-events: none; }
+  .search-input { width: 100%; padding: 12px 14px 12px 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 14.5px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+  .search-input:focus { border-color: var(--saffron); }
+  .recipe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 3px 14px rgba(0,0,0,.06); text-align: left; transition: transform .12s ease, box-shadow .12s ease; }
+  .grid-card:active { transform: scale(0.97); }
+  .grid-thumb { position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--card-dim); display: flex; align-items: center; justify-content: center; }
+  .grid-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .cat-badge { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: rgba(20,20,20,.55); backdrop-filter: blur(3px); font-size: 9.5px; font-weight: 600; letter-spacing: .03em; color: #fff; text-transform: uppercase; }
+  .cat-dot { width: 6px; height: 6px; border-radius: 999px; flex-shrink: 0; }
+  .grid-info { padding: 10px 11px 12px; }
+  .grid-title { font-family: 'Fraunces', Georgia, serif; font-size: 14.5px; line-height: 1.25; margin: 0 0 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .grid-meta { font-size: 10.5px; color: var(--ink-soft); margin: 0; }
   .scroll-x { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
   .scroll-x::-webkit-scrollbar { display: none; }
   @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .5 } }
@@ -140,14 +157,15 @@ const ICONS = {
   logout: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
   back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
   alarm: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="M22 6 19 3"/></svg>',
+  search: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
 };
 
 const CATEGORIES = [
-  { key: "antipasti", label: "Antipasti" },
-  { key: "primi", label: "Primi" },
-  { key: "secondi", label: "Secondi" },
-  { key: "contorni", label: "Contorni" },
-  { key: "dolci", label: "Dolci" },
+  { key: "antipasti", label: "Antipasti", color: "--herb" },
+  { key: "primi", label: "Primi", color: "--saffron" },
+  { key: "secondi", label: "Secondi", color: "--clay" },
+  { key: "contorni", label: "Contorni", color: "--teal" },
+  { key: "dolci", label: "Dolci", color: "--rose" },
 ];
 const ADMIN_EMAIL = "filippo.verlicchi@gmail.com";
 
@@ -214,6 +232,15 @@ function compressImage(file, maxDim, quality) {
 /* ---------------- alarm ---------------- */
 const alarmIntervals = {};
 let audioCtx = null;
+function unlockAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.01);
+}
 function beepOnce() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === "suspended") audioCtx.resume();
@@ -243,6 +270,7 @@ let AUTH_EMAIL = null;
 let recipes = [];
 let route = { screen: "login", selectedId: null };
 let filter = "all";
+let searchQuery = "";
 let banner = null;
 let draft = null;
 let timers = {};
@@ -373,17 +401,19 @@ function renderCurrent() {
 /* ---------------- home ---------------- */
 function recipeCard(r) {
   const cat = CATEGORIES.find((c) => c.key === r.category);
-  const card = el("button", {
-    class: "card", style: { display: "flex", width: "100%", textAlign: "left", marginBottom: "12px" },
-    onclick: () => { timers = {}; route = { screen: "detail", selectedId: r.id, step: -1 }; render(); },
-  });
-  const thumb = el("div", { style: { width: "88px", height: "88px", flexShrink: 0, background: "var(--card-dim)", display: "flex", alignItems: "center", justifyContent: "center" } });
-  if (r.coverImage) thumb.appendChild(el("img", { src: r.coverImage, style: { width: "100%", height: "100%", objectFit: "cover" } }));
+  const card = el("button", { class: "grid-card", onclick: () => { timers = {}; route = { screen: "detail", selectedId: r.id, step: -1 }; render(); } });
+  const thumb = el("div", { class: "grid-thumb" });
+  if (r.coverImage) thumb.appendChild(el("img", { src: r.coverImage, alt: r.name }));
   else thumb.innerHTML = ICONS.chef;
-  const info = el("div", { style: { padding: "10px 14px", minWidth: 0, flex: 1 } }, [
-    el("span", { style: { fontSize: "10.5px", color: "var(--herb)", letterSpacing: ".02em" } }, cat ? cat.label : ""),
-    el("h3", { class: "display", style: { fontSize: "17px", margin: "2px 0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, r.name),
-    el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", margin: 0 } }, (r.steps || []).length + " passaggi · " + r.author),
+  if (cat) {
+    thumb.appendChild(el("div", { class: "cat-badge" }, [
+      el("span", { class: "cat-dot", style: { background: "var(" + cat.color + ")" } }),
+      cat.label,
+    ]));
+  }
+  const info = el("div", { class: "grid-info" }, [
+    el("h3", { class: "grid-title" }, r.name),
+    el("p", { class: "grid-meta" }, (r.steps || []).length + " passaggi"),
   ]);
   card.append(thumb, info);
   return card;
@@ -399,33 +429,53 @@ function renderHome() {
   const bn = bannerNode();
   if (bn) body.appendChild(bn);
 
+  const searchWrap = el("div", { class: "search-wrap" });
+  searchWrap.innerHTML = ICONS.search;
+  const searchInput = el("input", { class: "search-input", placeholder: "Cerca una ricetta...", value: searchQuery });
+  searchWrap.appendChild(searchInput);
+  body.appendChild(searchWrap);
+
   const chips = el("div", { class: "scroll-x", style: { marginBottom: "18px" } });
   const allChip = el("button", { class: "chip" + (filter === "all" ? " active" : "") }, "Tutte");
   allChip.addEventListener("click", () => { filter = "all"; renderHome(); });
   chips.appendChild(allChip);
   CATEGORIES.forEach((c) => {
     const chip = el("button", { class: "chip" + (filter === c.key ? " active" : "") }, c.label);
+    if (filter === c.key) chip.style.background = "var(" + c.color + ")", chip.style.borderColor = "var(" + c.color + ")";
     chip.addEventListener("click", () => { filter = c.key; renderHome(); });
     chips.appendChild(chip);
   });
   body.appendChild(chips);
 
-  const list = filter === "all" ? recipes : recipes.filter((r) => r.category === filter);
-  if (list.length === 0) {
-    body.appendChild(el("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--ink-soft)" } }, [
-      el("p", { style: { fontSize: "13px" } }, "Nessuna ricetta qui. Crea la prima."),
-    ]));
-  } else {
-    list.forEach((r) => body.appendChild(recipeCard(r)));
-  }
+  const listContainer = el("div", {});
+  body.appendChild(listContainer);
   app.appendChild(body);
 
-  const fab = el("button", { class: "fab", html: ICONS.plus, onclick: () => {
+  function renderRecipeList() {
+    listContainer.innerHTML = "";
+    let list = filter === "all" ? recipes : recipes.filter((r) => r.category === filter);
+    const q = searchQuery.trim().toLowerCase();
+    if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
+    if (list.length === 0) {
+      listContainer.appendChild(el("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--ink-soft)" } }, [
+        el("p", { style: { fontSize: "13px" } }, q ? "Nessuna ricetta trovata per \"" + searchQuery.trim() + "\"." : "Nessuna ricetta qui. Crea la prima."),
+      ]));
+    } else {
+      const grid = el("div", { class: "recipe-grid" });
+      list.forEach((r) => grid.appendChild(recipeCard(r)));
+      listContainer.appendChild(grid);
+    }
+  }
+  searchInput.addEventListener("input", (e) => { searchQuery = e.target.value; renderRecipeList(); });
+  renderRecipeList();
+
+  const fab = el("button", { class: "fab" }, [el("span", { html: ICONS.plus }), "Nuova ricetta"]);
+  fab.addEventListener("click", () => {
     draft = { name: "", category: CATEGORIES[0].key, coverImage: null,
       ingredients: [""], steps: [{ id: rid(), text: "", hasTimer: false, minutes: "5", seconds: "0", image: null }] };
     route = { screen: "create", selectedId: null };
     render();
-  }});
+  });
   app.appendChild(fab);
 }
 
@@ -444,6 +494,7 @@ function renderCreate() {
   const catRow = el("div", { class: "scroll-x", style: { marginBottom: "18px" } });
   CATEGORIES.forEach((c) => {
     const chip = el("button", { class: "chip" + (draft.category === c.key ? " active" : "") }, c.label);
+    if (draft.category === c.key) { chip.style.background = "var(" + c.color + ")"; chip.style.borderColor = "var(" + c.color + ")"; }
     chip.addEventListener("click", () => { draft.category = c.key; renderCreate(); });
     catRow.appendChild(chip);
   });
@@ -642,7 +693,7 @@ function stepTimerBlock(step) {
     const resetBtn = el("button", { class: "icon-btn", html: ICONS.reset, style: { background: "var(--card)", color: "var(--ink)" } });
     resetBtn.addEventListener("click", () => { t.remaining = total; t.running = false; refreshTimerNode(step); });
     const playBtn = el("button", { class: "icon-btn", html: t.running ? ICONS.pause : ICONS.play, style: { background: "var(--herb)", color: "#fff" } });
-    playBtn.addEventListener("click", () => { t.running = !t.running; refreshTimerNode(step); });
+    playBtn.addEventListener("click", () => { unlockAudio(); t.running = !t.running; refreshTimerNode(step); });
     controls.append(resetBtn, playBtn);
   }
 
@@ -760,7 +811,7 @@ function renderDetail() {
     body.appendChild(cover);
 
     const titleBlock = el("div", { class: "pz-center", style: { marginBottom: "6px" } });
-    titleBlock.appendChild(el("span", { style: { fontSize: "11px", color: "var(--saffron)", fontWeight: 600, letterSpacing: ".03em" } }, cat ? cat.label.toUpperCase() : ""));
+    titleBlock.appendChild(el("span", { style: { fontSize: "11px", color: cat ? "var(" + cat.color + ")" : "var(--saffron)", fontWeight: 600, letterSpacing: ".03em" } }, cat ? cat.label.toUpperCase() : ""));
     titleBlock.appendChild(el("h1", { class: "display", style: { fontSize: "27px", margin: "4px 0 2px" } }, rec.name));
     body.appendChild(titleBlock);
     body.appendChild(el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", margin: "0 0 20px", textAlign: "center" } },
@@ -783,7 +834,7 @@ function renderDetail() {
     const startBtn = el("button", { class: "btn-primary", style: { padding: "16px" } }, [
       "Inizia ", el("span", { html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>' }),
     ]);
-    startBtn.addEventListener("click", () => goToStep(0));
+    startBtn.addEventListener("click", () => { unlockAudio(); goToStep(0); });
     body.appendChild(startBtn);
     root.appendChild(body);
     app.appendChild(root);
