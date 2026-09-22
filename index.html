@@ -36,22 +36,31 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--ink); font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  body {
+    background:
+      radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--saffron) 10%, transparent), transparent 45%),
+      radial-gradient(circle at 100% 30%, color-mix(in srgb, var(--herb) 8%, transparent), transparent 50%),
+      var(--bg);
+    background-attachment: fixed;
+    color: var(--ink); font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased;
+  }
   .display { font-family: 'Fraunces', Georgia, serif; }
   #app { max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; padding-bottom: 40px; }
   button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
   input, textarea { font-family: inherit; color: var(--ink); }
   input:focus, textarea:focus, button:focus { outline: 2px solid var(--saffron); outline-offset: 1px; }
   img { max-width: 100%; display: block; }
-  .field { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 15px; }
-  .chip { border: 1px solid var(--line); padding: 7px 14px; border-radius: 999px; font-size: 13px; background: transparent; color: var(--ink); white-space: nowrap; }
-  .chip.active { background: var(--saffron); border-color: var(--saffron); color: var(--chalk-on-accent); }
-  .btn-primary { width: 100%; padding: 13px; border-radius: 10px; background: var(--saffron); color: var(--chalk-on-accent); font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .field { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 15px; transition: border-color .15s ease; }
+  .field:focus { border-color: var(--saffron); }
+  .chip { border: 1px solid var(--line); padding: 7px 14px; border-radius: 999px; font-size: 13px; background: var(--card); color: var(--ink); white-space: nowrap; transition: all .15s ease; }
+  .chip.active { background: var(--saffron); border-color: var(--saffron); color: var(--chalk-on-accent); box-shadow: 0 3px 10px color-mix(in srgb, var(--saffron) 45%, transparent); }
+  .btn-primary { width: 100%; padding: 14px; border-radius: 12px; background: var(--saffron); color: var(--chalk-on-accent); font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 18px color-mix(in srgb, var(--saffron) 40%, transparent); transition: transform .12s ease, box-shadow .12s ease; }
+  .btn-primary:active { transform: scale(0.98); box-shadow: 0 3px 10px color-mix(in srgb, var(--saffron) 35%, transparent); }
   .btn-primary:disabled { opacity: .4; }
   .btn-ghost { width: 100%; padding: 12px; border-radius: 10px; border: 1px dashed var(--line); color: var(--ink); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; background: var(--card); }
   .icon-btn { padding: 8px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; }
-  .card { background: var(--card); border-radius: 14px; overflow: hidden; }
-  .step-card { background: var(--card); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+  .step-card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--line); box-shadow: 0 2px 10px rgba(0,0,0,.05); }
   .row { display: flex; align-items: center; }
   .banner { border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-size: 12.5px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .banner.error { background: color-mix(in srgb, var(--clay) 18%, transparent); border: 1px solid var(--clay); }
@@ -80,8 +89,9 @@
   .pz-stepbig { font-family: 'Fraunces', Georgia, serif; font-size: 64px; line-height: 1; color: var(--saffron); opacity: .28; margin: 6px 0 -14px; }
   .pz-slide-in { animation: pzIn .28s ease; }
   @keyframes pzIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  .pz-hero { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 18px; background: var(--card-dim); }
+  .pz-hero { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 18px; background: var(--card-dim); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
   .pz-ring-jump { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 10px); left: 50%; transform: translateX(-50%); z-index: 20; background: var(--clay); color: #fff; padding: 8px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 600; box-shadow: 0 6px 16px rgba(0,0,0,.3); }
+  .pz-center { text-align: center; display: flex; flex-direction: column; align-items: center; }
 </style>
 </head>
 <body>
@@ -115,6 +125,8 @@ function handleGoogleCredential(response) {
 
 /* ---------------- utilities ---------------- */
 const ICONS = {
+  sun: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>',
+  moon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
   plus: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
   chef: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/><line x1="6" y1="17" x2="18" y2="17"/></svg>',
   clock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
@@ -140,6 +152,25 @@ const CATEGORIES = [
 const ADMIN_EMAIL = "filippo.verlicchi@gmail.com";
 
 function rid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+/* ---------------- theme ---------------- */
+function getTheme() {
+  try { return localStorage.getItem("cucina_theme") || "auto"; } catch (e) { return "auto"; }
+}
+function applyTheme(theme) {
+  if (theme === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", theme);
+}
+function toggleTheme() {
+  const current = getTheme();
+  const systemDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const currentlyDark = current === "dark" || (current === "auto" && systemDark);
+  const next = currentlyDark ? "light" : "dark";
+  try { localStorage.setItem("cucina_theme", next); } catch (e) {}
+  applyTheme(next);
+  renderCurrent();
+}
+applyTheme(getTheme());
 function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
@@ -262,6 +293,9 @@ function subscribeRecipes() {
 /* ---------------- login ---------------- */
 function renderLogin() {
   app.innerHTML = "";
+  const isDark = getTheme() === "dark" || (getTheme() === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const themeBtn = el("button", { class: "icon-btn", html: isDark ? ICONS.sun : ICONS.moon, style: { position: "fixed", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: "16px", color: "var(--ink-soft)" }, onclick: toggleTheme });
+  app.appendChild(themeBtn);
   const wrap = el("div", { style: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 32px", textAlign: "center" } }, [
     el("div", { html: ICONS.chef, style: { color: "var(--saffron)" } }),
     el("h1", { class: "display", style: { fontSize: "28px", margin: "16px 0 2px" } }, "La Tua Cucina"),
@@ -305,12 +339,17 @@ function header({ title, back, onBack, user, onLogout }) {
       el("div", { style: { width: "22px" } })
     );
   } else {
+    const isDark = getTheme() === "dark" || (getTheme() === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    const themeBtn = el("button", { class: "icon-btn", html: isDark ? ICONS.sun : ICONS.moon, style: { color: "var(--ink-soft)" }, onclick: toggleTheme });
     h.append(
       el("div", {}, [
         el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", margin: 0 } }, "Ciao, " + user),
         el("h1", { class: "display", style: { fontSize: "24px", margin: "2px 0 0" } }, title),
       ]),
-      el("button", { class: "icon-btn", html: ICONS.logout, style: { color: "var(--ink-soft)" }, onclick: onLogout })
+      el("div", { class: "row", style: { gap: "4px" } }, [
+        themeBtn,
+        el("button", { class: "icon-btn", html: ICONS.logout, style: { color: "var(--ink-soft)" }, onclick: onLogout }),
+      ])
     );
   }
   return h;
@@ -694,23 +733,21 @@ function renderDetail() {
 
     const body = el("div", { class: "pz-body pz-slide-in" });
     const cat = CATEGORIES.find((c) => c.key === rec.category);
-    const cover = el("div", { class: "pz-hero", style: { height: "220px", display: "flex", alignItems: "center", justifyContent: "center" } });
+    const cover = el("div", { class: "pz-hero", style: { height: "220px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" } });
     if (rec.coverImage) cover.appendChild(el("img", { src: rec.coverImage, style: { width: "100%", height: "100%", objectFit: "cover" } }));
     else cover.innerHTML = ICONS.chef;
-    body.appendChild(cover);
-
-    body.appendChild(el("span", { style: { fontSize: "11px", color: "var(--saffron)" } }, cat ? cat.label : ""));
-    const titleRow = el("div", { class: "row", style: { justifyContent: "space-between", alignItems: "flex-start" } });
-    titleRow.appendChild(el("h1", { class: "display", style: { fontSize: "26px", margin: "2px 0 2px" } }, rec.name));
     if ((rec.authorUid && rec.authorUid === currentUid) || AUTH_EMAIL === ADMIN_EMAIL) {
       let confirming = false, confirmTimeout = null;
-      const del = el("button", { class: "icon-btn", html: ICONS.trash, style: { color: "var(--ink-soft)", marginTop: "4px" } });
+      const del = el("button", {
+        class: "icon-btn", html: ICONS.trash,
+        style: { position: "absolute", top: "10px", right: "10px", color: "#fff", background: "rgba(0,0,0,.45)", backdropFilter: "blur(4px)" },
+      });
       del.addEventListener("click", () => {
         if (!confirming) {
           confirming = true;
           del.innerHTML = ICONS.check;
-          del.style.color = "var(--clay)";
-          confirmTimeout = setTimeout(() => { confirming = false; del.innerHTML = ICONS.trash; del.style.color = "var(--ink-soft)"; }, 3000);
+          del.style.background = "var(--clay)";
+          confirmTimeout = setTimeout(() => { confirming = false; del.innerHTML = ICONS.trash; del.style.background = "rgba(0,0,0,.45)"; }, 3000);
           return;
         }
         clearTimeout(confirmTimeout);
@@ -718,10 +755,15 @@ function renderDetail() {
         recipes = recipes.filter((r) => r.id !== rec.id);
         exitToHome();
       });
-      titleRow.appendChild(del);
+      cover.appendChild(del);
     }
-    body.appendChild(titleRow);
-    body.appendChild(el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", margin: "0 0 20px" } },
+    body.appendChild(cover);
+
+    const titleBlock = el("div", { class: "pz-center", style: { marginBottom: "6px" } });
+    titleBlock.appendChild(el("span", { style: { fontSize: "11px", color: "var(--saffron)", fontWeight: 600, letterSpacing: ".03em" } }, cat ? cat.label.toUpperCase() : ""));
+    titleBlock.appendChild(el("h1", { class: "display", style: { fontSize: "27px", margin: "4px 0 2px" } }, rec.name));
+    body.appendChild(titleBlock);
+    body.appendChild(el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", margin: "0 0 20px", textAlign: "center" } },
       "di " + rec.author + " · " + rec.steps.length + " passaggi"));
 
     if (rec.ingredients && rec.ingredients.length) {
@@ -783,13 +825,13 @@ function renderDetail() {
   });
   root.appendChild(progress);
 
-  const body = el("div", { class: "pz-body pz-slide-in" });
-  if (step.image) body.appendChild(el("div", { class: "pz-hero", style: { height: "200px" } }, [
+  const body = el("div", { class: "pz-body pz-slide-in pz-center" });
+  if (step.image) body.appendChild(el("div", { class: "pz-hero", style: { height: "200px", width: "100%" } }, [
     el("img", { src: step.image, style: { width: "100%", height: "100%", objectFit: "cover" } }),
   ]));
   body.appendChild(el("div", { class: "pz-stepbig" }, String(route.step + 1).padStart(2, "0")));
   body.appendChild(el("p", { class: "pz-stepnum" }, "Passaggio " + (route.step + 1)));
-  body.appendChild(el("p", { style: { fontSize: "19px", lineHeight: "1.55", margin: "8px 0 4px" } }, step.text));
+  body.appendChild(el("p", { style: { fontSize: "19px", lineHeight: "1.6", margin: "8px 0 4px", maxWidth: "360px" } }, step.text));
   if (step.hasTimer) body.appendChild(stepTimerBlock(step));
   root.appendChild(body);
 
