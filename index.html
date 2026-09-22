@@ -158,6 +158,7 @@ const ICONS = {
   back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
   alarm: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="M22 6 19 3"/></svg>',
   search: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>',
 };
 
 const CATEGORIES = [
@@ -273,6 +274,7 @@ let filter = "all";
 let searchQuery = "";
 let banner = null;
 let draft = null;
+let editingRecipeId = null;
 let timers = {};
 let pendingWork = 0;
 
@@ -482,7 +484,12 @@ function renderHome() {
 /* ---------------- create ---------------- */
 function renderCreate() {
   app.innerHTML = "";
-  app.appendChild(header({ title: "Nuova ricetta", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
+  const wasEditing = !!editingRecipeId;
+  app.appendChild(header({ title: wasEditing ? "Modifica ricetta" : "Nuova ricetta", back: true, onBack: () => {
+    if (wasEditing) { const id = editingRecipeId; editingRecipeId = null; timers = {}; route = { screen: "detail", selectedId: id, step: -1 }; }
+    else route = { screen: "home", selectedId: null };
+    render();
+  }}));
   const body = el("div", { style: { padding: "0 20px" } });
 
   body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Nome ricetta"));
@@ -533,7 +540,7 @@ function renderCreate() {
   });
   body.appendChild(addStepBtn);
 
-  const saveBtn = el("button", { class: "btn-primary", id: "save-btn" }, [el("span", { html: ICONS.check }), " Salva ricetta"]);
+  const saveBtn = el("button", { class: "btn-primary", id: "save-btn" }, [el("span", { html: ICONS.check }), wasEditing ? " Salva modifiche" : " Salva ricetta"]);
   saveBtn.addEventListener("click", saveRecipe);
   body.appendChild(saveBtn);
   body.appendChild(el("div", { style: { height: "20px" } }));
@@ -626,6 +633,8 @@ function updateSaveState() {
 function saveRecipe() {
   if (!draft.name.trim() || !draft.steps.every((s) => s.text.trim())) return;
   if (!currentUid) { banner = { type: "error", text: "Connessione al database non pronta, riprova tra un istante." }; renderCreate(); return; }
+  const isEditing = !!editingRecipeId;
+  const original = isEditing ? recipes.find((r) => r.id === editingRecipeId) : null;
   const finish = () => {
     const data = {
       name: draft.name.trim(),
@@ -637,13 +646,17 @@ function saveRecipe() {
         minutes: parseInt(s.minutes, 10) || 0, seconds: parseInt(s.seconds, 10) || 0,
         image: s.image || null,
       })),
-      author: AUTH_USER,
-      authorUid: currentUid,
-      createdAt: Date.now(),
+      author: isEditing && original ? original.author : AUTH_USER,
+      authorUid: isEditing && original ? original.authorUid : currentUid,
+      createdAt: isEditing && original ? original.createdAt : Date.now(),
     };
-    const ref = fdb.collection("recipes").doc();
+    const ref = isEditing ? fdb.collection("recipes").doc(editingRecipeId) : fdb.collection("recipes").doc();
     ref.set(data).then(() => {
-      route = { screen: "home", selectedId: null }; render();
+      const goToId = isEditing ? editingRecipeId : null;
+      editingRecipeId = null;
+      if (goToId) { timers = {}; route = { screen: "detail", selectedId: goToId, step: -1 }; }
+      else route = { screen: "home", selectedId: null };
+      render();
     }).catch((e) => {
       console.error(e);
       const msg = e.code === "invalid-argument" || (e.message && e.message.indexOf("1048576") > -1)
@@ -788,6 +801,25 @@ function renderDetail() {
     if (rec.coverImage) cover.appendChild(el("img", { src: rec.coverImage, style: { width: "100%", height: "100%", objectFit: "cover" } }));
     else cover.innerHTML = ICONS.chef;
     if ((rec.authorUid && rec.authorUid === currentUid) || AUTH_EMAIL === ADMIN_EMAIL) {
+      const editBtn = el("button", {
+        class: "icon-btn", html: ICONS.edit,
+        style: { position: "absolute", top: "10px", right: "54px", color: "#fff", background: "rgba(0,0,0,.45)", backdropFilter: "blur(4px)" },
+      });
+      editBtn.addEventListener("click", () => {
+        editingRecipeId = rec.id;
+        draft = {
+          name: rec.name, category: rec.category, coverImage: rec.coverImage || null,
+          ingredients: rec.ingredients && rec.ingredients.length ? [...rec.ingredients] : [""],
+          steps: rec.steps.map((s) => ({
+            id: s.id, text: s.text, hasTimer: !!s.hasTimer,
+            minutes: String(s.minutes || 0), seconds: String(s.seconds || 0), image: s.image || null,
+          })),
+        };
+        route = { screen: "create", selectedId: null };
+        render();
+      });
+      cover.appendChild(editBtn);
+
       let confirming = false, confirmTimeout = null;
       const del = el("button", {
         class: "icon-btn", html: ICONS.trash,
