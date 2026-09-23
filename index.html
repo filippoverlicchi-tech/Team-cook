@@ -164,6 +164,10 @@ const ICONS = {
   database: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
   upload: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
   download: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  heart: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>',
+  heartFilled: '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>',
+  thumb: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>',
+  thumbFilled: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 10v12H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/><path d="M9.5 22h8a2 2 0 0 0 1.95-1.57l2.34-8A2 2 0 0 0 19.83 10H14l1-4.12A3.13 3.13 0 0 0 12 2L8.55 8.89A2 2 0 0 1 6.76 10H7v10.5A1.5 1.5 0 0 0 8.5 22Z"/></svg>',
 };
 
 const CATEGORIES = [
@@ -281,6 +285,7 @@ let AUTH_USER = null;
 let AUTH_PHOTO = null;
 let AUTH_EMAIL = null;
 let recipes = [];
+let myFavorites = [];
 let route = { screen: "login", selectedId: null };
 let filter = "all";
 let searchQuery = "";
@@ -302,26 +307,52 @@ function initFirebase() {
       AUTH_EMAIL = user.email || null;
       if (route.screen === "login") route = { screen: "home", selectedId: null };
       subscribeRecipes();
+      subscribeFavorites();
       render();
     } else {
       currentUid = null;
       AUTH_USER = null;
       AUTH_PHOTO = null;
       AUTH_EMAIL = null;
+      myFavorites = [];
       route = { screen: "login", selectedId: null };
       render();
     }
   });
 }
 
+function subscribeFavorites() {
+  fdb.collection("favorites").doc(currentUid).onSnapshot(
+    (doc) => {
+      myFavorites = (doc.exists && Array.isArray(doc.data().recipeIds)) ? doc.data().recipeIds : [];
+      renderCurrent();
+    },
+    (err) => console.error("favorites onSnapshot error", err)
+  );
+}
+
+function toggleFavorite(recipeId) {
+  const isFav = myFavorites.includes(recipeId);
+  const op = isFav ? firebase.firestore.FieldValue.arrayRemove(recipeId) : firebase.firestore.FieldValue.arrayUnion(recipeId);
+  fdb.collection("favorites").doc(currentUid).set({ recipeIds: op }, { merge: true }).catch((e) => console.error(e));
+}
+
+function toggleVote(rec) {
+  const votedBy = Array.isArray(rec.votedBy) ? rec.votedBy : [];
+  const hasVoted = votedBy.includes(currentUid);
+  const op = hasVoted ? firebase.firestore.FieldValue.arrayRemove(currentUid) : firebase.firestore.FieldValue.arrayUnion(currentUid);
+  fdb.collection("recipes").doc(rec.id).update({ votedBy: op }).catch((e) => console.error(e));
+}
 function subscribeRecipes() {
   fdb.collection("recipes").orderBy("createdAt", "desc").limit(200).onSnapshot(
     (snap) => {
       recipes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       if (route.screen === "home") renderHome();
+      if (route.screen === "favorites") renderFavorites();
       if (route.screen === "detail") {
         const still = recipes.find((r) => r.id === route.selectedId);
         if (!still) { route = { screen: "home", selectedId: null }; render(); }
+        else renderDetail();
       }
     },
     (err) => {
@@ -384,6 +415,8 @@ function header({ title, back, onBack, user, onLogout }) {
     const isDark = getTheme() === "dark" || (getTheme() === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
     const themeBtn = el("button", { class: "icon-btn", html: isDark ? ICONS.sun : ICONS.moon, style: { color: "var(--ink-soft)" }, onclick: toggleTheme });
     const rightIcons = [themeBtn];
+    const favNavBtn = el("button", { class: "icon-btn", html: ICONS.heart, style: { color: "var(--ink-soft)" }, onclick: () => { route = { screen: "favorites", selectedId: null }; render(); } });
+    rightIcons.push(favNavBtn);
     if (AUTH_EMAIL === ADMIN_EMAIL) {
       const adminBtn = el("button", { class: "icon-btn", html: ICONS.database, style: { color: "var(--ink-soft)" }, onclick: () => { route = { screen: "backup", selectedId: null }; render(); } });
       rightIcons.push(adminBtn);
@@ -413,13 +446,15 @@ function renderCurrent() {
   else if (route.screen === "detail") renderDetail();
   else if (route.screen === "create") renderCreate();
   else if (route.screen === "backup") renderBackup();
+  else if (route.screen === "favorites") renderFavorites();
   else renderLogin();
 }
 
 /* ---------------- home ---------------- */
 function recipeCard(r) {
   const cats = catsOf(r).map((k) => CATEGORIES.find((c) => c.key === k)).filter(Boolean);
-  const card = el("button", { class: "grid-card", onclick: () => { timers = {}; route = { screen: "detail", selectedId: r.id, step: -1 }; render(); } });
+  const card = el("div", { class: "grid-card" });
+  const clickWrap = el("div", { style: { cursor: "pointer" }, onclick: () => { timers = {}; route = { screen: "detail", selectedId: r.id, step: -1 }; render(); } });
   const thumb = el("div", { class: "grid-thumb" });
   if (r.coverImage) thumb.appendChild(el("img", { src: r.coverImage, alt: r.name }));
   else thumb.innerHTML = ICONS.chef;
@@ -430,11 +465,29 @@ function recipeCard(r) {
       label,
     ]));
   }
+  const isFav = myFavorites.includes(r.id);
+  const favBtn = el("button", {
+    html: isFav ? ICONS.heartFilled : ICONS.heart,
+    style: { position: "absolute", top: "8px", right: "8px", color: isFav ? "var(--clay)" : "#fff", background: "rgba(0,0,0,.4)", backdropFilter: "blur(3px)", borderRadius: "999px", padding: "6px" },
+    onclick: (e) => { e.stopPropagation(); toggleFavorite(r.id); },
+  });
+  thumb.style.position = "relative";
+  thumb.appendChild(favBtn);
+  const votedBy = Array.isArray(r.votedBy) ? r.votedBy : [];
+  const hasVoted = votedBy.includes(currentUid);
+  const voteBtn = el("button", {
+    class: "row", style: { gap: "4px", color: hasVoted ? "var(--saffron)" : "var(--ink-soft)", fontSize: "11px", fontWeight: 600 },
+    onclick: (e) => { e.stopPropagation(); toggleVote(r); },
+  }, [el("span", { html: hasVoted ? ICONS.thumbFilled : ICONS.thumb }), String(votedBy.length)]);
   const info = el("div", { class: "grid-info" }, [
     el("h3", { class: "grid-title" }, r.name),
-    el("p", { class: "grid-meta" }, (r.steps || []).length + " passaggi"),
+    el("div", { class: "row", style: { justifyContent: "space-between", alignItems: "center" } }, [
+      el("p", { class: "grid-meta" }, (r.steps || []).length + " passaggi"),
+      voteBtn,
+    ]),
   ]);
-  card.append(thumb, info);
+  clickWrap.append(thumb, info);
+  card.appendChild(clickWrap);
   return card;
 }
 
@@ -475,6 +528,7 @@ function renderHome() {
     let list = filter === "all" ? recipes : recipes.filter((r) => catsOf(r).includes(filter));
     const q = searchQuery.trim().toLowerCase();
     if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
+    list = [...list].sort((a, b) => (Array.isArray(b.votedBy) ? b.votedBy.length : 0) - (Array.isArray(a.votedBy) ? a.votedBy.length : 0));
     if (list.length === 0) {
       listContainer.appendChild(el("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--ink-soft)" } }, [
         el("p", { style: { fontSize: "13px" } }, q ? "Nessuna ricetta trovata per \"" + searchQuery.trim() + "\"." : "Nessuna ricetta qui. Crea la prima."),
@@ -874,8 +928,23 @@ function renderDetail() {
     titleBlock.appendChild(catPills);
     titleBlock.appendChild(el("h1", { class: "display", style: { fontSize: "27px", margin: "6px 0 2px" } }, rec.name));
     body.appendChild(titleBlock);
-    body.appendChild(el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", margin: "0 0 20px", textAlign: "center" } },
+    body.appendChild(el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", margin: "0 0 12px", textAlign: "center" } },
       "di " + rec.author + " · " + rec.steps.length + " passaggi"));
+
+    const isFavHere = myFavorites.includes(rec.id);
+    const votedByHere = Array.isArray(rec.votedBy) ? rec.votedBy : [];
+    const hasVotedHere = votedByHere.includes(currentUid);
+    const actionsRow = el("div", { class: "row", style: { justifyContent: "center", gap: "10px", marginBottom: "22px" } });
+    const favActionBtn = el("button", {
+      class: "chip", style: { display: "flex", alignItems: "center", gap: "6px", color: isFavHere ? "var(--clay)" : "var(--ink)", borderColor: isFavHere ? "var(--clay)" : "var(--line)" },
+    }, [el("span", { html: isFavHere ? ICONS.heartFilled : ICONS.heart }), isFavHere ? "Nei preferiti" : "Preferiti"]);
+    favActionBtn.addEventListener("click", () => toggleFavorite(rec.id));
+    const voteActionBtn = el("button", {
+      class: "chip", style: { display: "flex", alignItems: "center", gap: "6px", color: hasVotedHere ? "var(--saffron)" : "var(--ink)", borderColor: hasVotedHere ? "var(--saffron)" : "var(--line)" },
+    }, [el("span", { html: hasVotedHere ? ICONS.thumbFilled : ICONS.thumb }), String(votedByHere.length)]);
+    voteActionBtn.addEventListener("click", () => toggleVote(rec));
+    actionsRow.append(favActionBtn, voteActionBtn);
+    body.appendChild(actionsRow);
 
     if (rec.ingredients && rec.ingredients.length) {
       const box = el("div", { class: "card", style: { padding: "14px 16px", marginBottom: "24px" } });
@@ -955,6 +1024,25 @@ function renderDetail() {
   root.appendChild(navbar);
 
   app.appendChild(root);
+}
+
+/* ---------------- favorites ---------------- */
+function renderFavorites() {
+  app.innerHTML = "";
+  app.appendChild(header({ title: "Preferiti", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
+  const body = el("div", { style: { padding: "0 20px" } });
+  let list = recipes.filter((r) => myFavorites.includes(r.id));
+  list = [...list].sort((a, b) => (Array.isArray(b.votedBy) ? b.votedBy.length : 0) - (Array.isArray(a.votedBy) ? a.votedBy.length : 0));
+  if (list.length === 0) {
+    body.appendChild(el("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--ink-soft)" } }, [
+      el("p", { style: { fontSize: "13px" } }, "Nessuna ricetta nei preferiti ancora. Tocca il cuore su una ricetta per salvarla qui."),
+    ]));
+  } else {
+    const grid = el("div", { class: "recipe-grid" });
+    list.forEach((r) => grid.appendChild(recipeCard(r)));
+    body.appendChild(grid);
+  }
+  app.appendChild(body);
 }
 
 /* ---------------- backup / bulk import (admin) ---------------- */
@@ -1067,6 +1155,7 @@ function render() {
   else if (route.screen === "create") renderCreate();
   else if (route.screen === "detail") renderDetail();
   else if (route.screen === "backup") renderBackup();
+  else if (route.screen === "favorites") renderFavorites();
   else renderHome();
 }
 render();
