@@ -86,6 +86,28 @@
   .grid-info { padding: 10px 11px 12px; }
   .grid-title { font-family: 'Fraunces', Georgia, serif; font-size: 14.5px; line-height: 1.25; margin: 0 0 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .grid-meta { font-size: 10.5px; color: var(--ink-soft); margin: 0; }
+
+  /* side drawer */
+  .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40; animation: drawerFade .2s ease; }
+  @keyframes drawerFade { from { opacity: 0 } to { opacity: 1 } }
+  .drawer-panel {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 80%; max-width: 300px; z-index: 41;
+    background: var(--card); box-shadow: 10px 0 30px rgba(0,0,0,.2);
+    padding: calc(env(safe-area-inset-top, 0px) + 22px) 0 24px;
+    overflow-y: auto; animation: drawerSlide .22s ease;
+  }
+  @keyframes drawerSlide { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+  .drawer-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px 20px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .drawer-item { display: flex; align-items: center; gap: 13px; padding: 14px 20px; font-size: 14.5px; color: var(--ink); width: 100%; text-align: left; }
+  .drawer-item:active { background: var(--card-dim); }
+  .drawer-section-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); padding: 18px 20px 4px; font-weight: 600; }
+  .drawer-cat-row { display: flex; align-items: center; gap: 10px; padding: 10px 20px 10px 38px; font-size: 13.5px; width: 100%; text-align: left; color: var(--ink); }
+  .drawer-cat-row.active { font-weight: 600; }
+  .drawer-cat-row:active { background: var(--card-dim); }
+  .theme-toggle-row { display: flex; gap: 8px; padding: 6px 20px 4px; }
+  .theme-opt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 12px; border: 1px solid var(--line); font-size: 11px; color: var(--ink-soft); }
+  .theme-opt.active { border-color: var(--saffron); color: var(--ink); background: var(--card-dim); }
+  .active-filter-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 14px; }
   .scroll-x { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
   .scroll-x::-webkit-scrollbar { display: none; }
   @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .5 } }
@@ -168,6 +190,8 @@ const ICONS = {
   heartFilled: '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>',
   thumb: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>',
   thumbFilled: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 10v12H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/><path d="M9.5 22h8a2 2 0 0 0 1.95-1.57l2.34-8A2 2 0 0 0 19.83 10H14l1-4.12A3.13 3.13 0 0 0 12 2L8.55 8.89A2 2 0 0 1 6.76 10H7v10.5A1.5 1.5 0 0 0 8.5 22Z"/></svg>',
+  menu: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>',
+  chevronDown: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
 };
 
 const CATEGORIES = [
@@ -288,6 +312,8 @@ let recipes = [];
 let myFavorites = [];
 let route = { screen: "login", selectedId: null };
 let filter = "all";
+let drawerOpen = false;
+let drawerCatsExpanded = false;
 let searchQuery = "";
 let banner = null;
 let draft = null;
@@ -403,33 +429,13 @@ function renderLogin() {
 }
 
 /* ---------------- header ---------------- */
-function header({ title, back, onBack, user, onLogout }) {
+function header({ title, back, onBack }) {
   const h = el("div", { class: "row", style: { justifyContent: "space-between", padding: "22px 20px 14px" } });
-  if (back) {
-    h.append(
-      el("button", { class: "icon-btn", html: ICONS.back, onclick: onBack }),
-      el("h2", { class: "display", style: { fontSize: "17px" } }, title || ""),
-      el("div", { style: { width: "22px" } })
-    );
-  } else {
-    const isDark = getTheme() === "dark" || (getTheme() === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    const themeBtn = el("button", { class: "icon-btn", html: isDark ? ICONS.sun : ICONS.moon, style: { color: "var(--ink-soft)" }, onclick: toggleTheme });
-    const rightIcons = [themeBtn];
-    const favNavBtn = el("button", { class: "icon-btn", html: ICONS.heart, style: { color: "var(--ink-soft)" }, onclick: () => { route = { screen: "favorites", selectedId: null }; render(); } });
-    rightIcons.push(favNavBtn);
-    if (AUTH_EMAIL === ADMIN_EMAIL) {
-      const adminBtn = el("button", { class: "icon-btn", html: ICONS.database, style: { color: "var(--ink-soft)" }, onclick: () => { route = { screen: "backup", selectedId: null }; render(); } });
-      rightIcons.push(adminBtn);
-    }
-    rightIcons.push(el("button", { class: "icon-btn", html: ICONS.logout, style: { color: "var(--ink-soft)" }, onclick: onLogout }));
-    h.append(
-      el("div", {}, [
-        el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", margin: 0 } }, "Ciao, " + user),
-        el("h1", { class: "display", style: { fontSize: "24px", margin: "2px 0 0" } }, title),
-      ]),
-      el("div", { class: "row", style: { gap: "4px" } }, rightIcons)
-    );
-  }
+  h.append(
+    el("button", { class: "icon-btn", html: ICONS.back, onclick: onBack }),
+    el("h2", { class: "display", style: { fontSize: "17px" } }, title || ""),
+    el("div", { style: { width: "22px" } })
+  );
   return h;
 }
 
@@ -491,13 +497,92 @@ function recipeCard(r) {
   return card;
 }
 
+function renderDrawer() {
+  const existing = document.getElementById("drawer-backdrop");
+  if (existing) existing.remove();
+  if (!drawerOpen) return;
+
+  const closeDrawer = () => { drawerOpen = false; renderDrawer(); };
+  const backdrop = el("div", { class: "drawer-backdrop", id: "drawer-backdrop", onclick: closeDrawer });
+  const panel = el("div", { class: "drawer-panel", onclick: (e) => e.stopPropagation() });
+
+  panel.appendChild(el("div", { class: "drawer-brand" }, [
+    el("span", { html: ICONS.chef, style: { color: "var(--saffron)" } }),
+    el("span", { class: "display", style: { fontSize: "17px" } }, "La Tua Cucina"),
+  ]));
+
+  const favItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.heart }), "Preferiti"]);
+  favItem.addEventListener("click", () => { closeDrawer(); route = { screen: "favorites", selectedId: null }; render(); });
+  panel.appendChild(favItem);
+
+  panel.appendChild(el("div", { class: "drawer-section-title" }, "Sfoglia"));
+  const catToggle = el("button", { class: "drawer-item", style: { justifyContent: "space-between" } }, [
+    el("div", { class: "row", style: { gap: "13px" } }, [el("span", { html: ICONS.database }), "Categorie"]),
+    el("span", { html: ICONS.chevronDown, style: { transform: drawerCatsExpanded ? "rotate(180deg)" : "none", transition: "transform .15s" } }),
+  ]);
+  catToggle.addEventListener("click", () => { drawerCatsExpanded = !drawerCatsExpanded; renderDrawer(); });
+  panel.appendChild(catToggle);
+
+  if (drawerCatsExpanded) {
+    const allRow = el("button", { class: "drawer-cat-row" + (filter === "all" ? " active" : ""), style: { color: filter === "all" ? "var(--saffron)" : "var(--ink)" } }, "Tutte le categorie");
+    allRow.addEventListener("click", () => { filter = "all"; closeDrawer(); renderHome(); });
+    panel.appendChild(allRow);
+    CATEGORIES.forEach((c) => {
+      const active = filter === c.key;
+      const row = el("button", { class: "drawer-cat-row" + (active ? " active" : ""), style: { color: active ? "var(" + c.color + ")" : "var(--ink)" } }, [
+        el("span", { style: { width: "8px", height: "8px", borderRadius: "999px", background: "var(" + c.color + ")", flexShrink: 0 } }),
+        c.label,
+      ]);
+      row.addEventListener("click", () => { filter = c.key; closeDrawer(); renderHome(); });
+      panel.appendChild(row);
+    });
+  }
+
+  if (AUTH_EMAIL === ADMIN_EMAIL) {
+    const adminItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.database }), "Backup ricette (admin)"]);
+    adminItem.addEventListener("click", () => { closeDrawer(); route = { screen: "backup", selectedId: null }; render(); });
+    panel.appendChild(adminItem);
+  }
+
+  panel.appendChild(el("div", { class: "drawer-section-title" }, "Tema"));
+  const themeRow = el("div", { class: "theme-toggle-row" });
+  const currentTheme = getTheme();
+  const isDarkNow = currentTheme === "dark" || (currentTheme === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const lightOpt = el("button", { class: "theme-opt" + (!isDarkNow ? " active" : "") }, [el("span", { html: ICONS.sun }), "Chiaro"]);
+  lightOpt.addEventListener("click", () => { try { localStorage.setItem("cucina_theme", "light"); } catch (e) {} applyTheme("light"); renderDrawer(); renderCurrent(); });
+  const darkOpt = el("button", { class: "theme-opt" + (isDarkNow ? " active" : "") }, [el("span", { html: ICONS.moon }), "Scuro"]);
+  darkOpt.addEventListener("click", () => { try { localStorage.setItem("cucina_theme", "dark"); } catch (e) {} applyTheme("dark"); renderDrawer(); renderCurrent(); });
+  themeRow.append(lightOpt, darkOpt);
+  panel.appendChild(themeRow);
+
+  panel.appendChild(el("div", { class: "drawer-section-title" }, ""));
+  const logoutItem = el("button", { class: "drawer-item", style: { color: "var(--ink-soft)" } }, [el("span", { html: ICONS.logout }), "Esci"]);
+  logoutItem.addEventListener("click", () => {
+    if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+    closeDrawer();
+    fauth.signOut();
+  });
+  panel.appendChild(logoutItem);
+
+  backdrop.appendChild(panel);
+  document.body.appendChild(backdrop);
+}
+
 function renderHome() {
   app.innerHTML = "";
-  app.appendChild(header({ title: "Le tue ricette", user: AUTH_USER, onLogout: () => {
-    if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
-    fauth.signOut();
-  }}));
-  const body = el("div", { style: { padding: "0 20px" } });
+  const topBar = el("div", { class: "row", style: { justifyContent: "space-between", padding: "22px 20px 4px" } });
+  const menuBtn = el("button", { class: "icon-btn", html: ICONS.menu, style: { color: "var(--ink)" } });
+  menuBtn.addEventListener("click", () => { drawerOpen = true; renderDrawer(); });
+  topBar.append(
+    menuBtn,
+    el("div", { style: { textAlign: "right" } }, [
+      el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", margin: 0 } }, "Ciao, " + AUTH_USER),
+      el("h1", { class: "display", style: { fontSize: "22px", margin: "2px 0 0" } }, "Le tue ricette"),
+    ])
+  );
+  app.appendChild(topBar);
+
+  const body = el("div", { style: { padding: "14px 20px 0" } });
   const bn = bannerNode();
   if (bn) body.appendChild(bn);
 
@@ -507,17 +592,16 @@ function renderHome() {
   searchWrap.appendChild(searchInput);
   body.appendChild(searchWrap);
 
-  const chips = el("div", { class: "scroll-x", style: { marginBottom: "18px" } });
-  const allChip = el("button", { class: "chip" + (filter === "all" ? " active" : "") }, "Tutte");
-  allChip.addEventListener("click", () => { filter = "all"; renderHome(); });
-  chips.appendChild(allChip);
-  CATEGORIES.forEach((c) => {
-    const chip = el("button", { class: "chip" + (filter === c.key ? " active" : "") }, c.label);
-    if (filter === c.key) chip.style.background = "var(" + c.color + ")", chip.style.borderColor = "var(" + c.color + ")";
-    chip.addEventListener("click", () => { filter = c.key; renderHome(); });
-    chips.appendChild(chip);
-  });
-  body.appendChild(chips);
+  if (filter !== "all") {
+    const activeCat = CATEGORIES.find((c) => c.key === filter);
+    if (activeCat) {
+      const pill = el("button", { class: "active-filter-pill", style: { background: "var(" + activeCat.color + ")", color: "var(--chalk-on-accent)" } }, [
+        activeCat.label, el("span", { html: ICONS.x, style: { display: "flex" } }),
+      ]);
+      pill.addEventListener("click", () => { filter = "all"; renderHome(); });
+      body.appendChild(pill);
+    }
+  }
 
   const listContainer = el("div", {});
   body.appendChild(listContainer);
