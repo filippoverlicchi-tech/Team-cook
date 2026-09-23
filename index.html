@@ -21,6 +21,8 @@
     --clay: #B8451F;
     --teal: #2E7E82;
     --rose: #B85C7A;
+    --mustard: #A67C1E;
+    --plum: #6B4E9E;
     --line: rgba(43,46,39,0.14);
     --chalk-on-accent: #2B2E27;
   }
@@ -28,13 +30,13 @@
     :root:not([data-theme="light"]) {
       --bg: #262922; --card: #33362D; --card-dim: #3C3F35;
       --ink: #F5F0E6; --ink-soft: #B7B3A4; --saffron: #E3A857;
-      --herb: #86AF90; --clay: #E08363; --teal: #5FB3B8; --rose: #E094AE; --line: rgba(245,240,230,0.14);
+      --herb: #86AF90; --clay: #E08363; --teal: #5FB3B8; --rose: #E094AE; --mustard: #D9B24C; --plum: #A78BFA; --line: rgba(245,240,230,0.14);
     }
   }
   :root[data-theme="dark"] {
     --bg: #262922; --card: #33362D; --card-dim: #3C3F35;
     --ink: #F5F0E6; --ink-soft: #B7B3A4; --saffron: #E3A857;
-    --herb: #86AF90; --clay: #E08363; --teal: #5FB3B8; --rose: #E094AE; --line: rgba(245,240,230,0.14);
+    --herb: #86AF90; --clay: #E08363; --teal: #5FB3B8; --rose: #E094AE; --mustard: #D9B24C; --plum: #A78BFA; --line: rgba(245,240,230,0.14);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -170,7 +172,14 @@ const CATEGORIES = [
   { key: "secondi", label: "Secondi", color: "--clay" },
   { key: "contorni", label: "Contorni", color: "--teal" },
   { key: "dolci", label: "Dolci", color: "--rose" },
+  { key: "colazione", label: "Colazione", color: "--mustard" },
+  { key: "etnica", label: "Etnica", color: "--plum" },
 ];
+function catsOf(r) {
+  if (Array.isArray(r.categories) && r.categories.length) return r.categories;
+  if (r.category) return [r.category];
+  return [];
+}
 const ADMIN_EMAIL = "filippo.verlicchi@gmail.com";
 
 function rid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -409,15 +418,16 @@ function renderCurrent() {
 
 /* ---------------- home ---------------- */
 function recipeCard(r) {
-  const cat = CATEGORIES.find((c) => c.key === r.category);
+  const cats = catsOf(r).map((k) => CATEGORIES.find((c) => c.key === k)).filter(Boolean);
   const card = el("button", { class: "grid-card", onclick: () => { timers = {}; route = { screen: "detail", selectedId: r.id, step: -1 }; render(); } });
   const thumb = el("div", { class: "grid-thumb" });
   if (r.coverImage) thumb.appendChild(el("img", { src: r.coverImage, alt: r.name }));
   else thumb.innerHTML = ICONS.chef;
-  if (cat) {
+  if (cats.length) {
+    const label = cats.length > 1 ? cats[0].label + " +" + (cats.length - 1) : cats[0].label;
     thumb.appendChild(el("div", { class: "cat-badge" }, [
-      el("span", { class: "cat-dot", style: { background: "var(" + cat.color + ")" } }),
-      cat.label,
+      el("span", { class: "cat-dot", style: { background: "var(" + cats[0].color + ")" } }),
+      label,
     ]));
   }
   const info = el("div", { class: "grid-info" }, [
@@ -462,7 +472,7 @@ function renderHome() {
 
   function renderRecipeList() {
     listContainer.innerHTML = "";
-    let list = filter === "all" ? recipes : recipes.filter((r) => r.category === filter);
+    let list = filter === "all" ? recipes : recipes.filter((r) => catsOf(r).includes(filter));
     const q = searchQuery.trim().toLowerCase();
     if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
     if (list.length === 0) {
@@ -480,7 +490,7 @@ function renderHome() {
 
   const fab = el("button", { class: "fab" }, [el("span", { html: ICONS.plus }), "Nuova ricetta"]);
   fab.addEventListener("click", () => {
-    draft = { name: "", category: CATEGORIES[0].key, coverImage: null,
+    draft = { name: "", categories: [CATEGORIES[0].key], coverImage: null,
       ingredients: [""], steps: [{ id: rid(), text: "", hasTimer: false, minutes: "5", seconds: "0", image: null }] };
     route = { screen: "create", selectedId: null };
     render();
@@ -504,12 +514,17 @@ function renderCreate() {
   nameInput.addEventListener("input", (e) => { draft.name = e.target.value; updateSaveState(); });
   body.appendChild(nameInput);
 
-  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "8px" } }, "Categoria"));
+  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "8px" } }, "Categorie (puoi sceglierne più di una)"));
   const catRow = el("div", { class: "scroll-x", style: { marginBottom: "18px" } });
   CATEGORIES.forEach((c) => {
-    const chip = el("button", { class: "chip" + (draft.category === c.key ? " active" : "") }, c.label);
-    if (draft.category === c.key) { chip.style.background = "var(" + c.color + ")"; chip.style.borderColor = "var(" + c.color + ")"; }
-    chip.addEventListener("click", () => { draft.category = c.key; renderCreate(); });
+    const active = draft.categories.includes(c.key);
+    const chip = el("button", { class: "chip" + (active ? " active" : "") }, c.label);
+    if (active) { chip.style.background = "var(" + c.color + ")"; chip.style.borderColor = "var(" + c.color + ")"; }
+    chip.addEventListener("click", () => {
+      if (active) draft.categories = draft.categories.filter((k) => k !== c.key);
+      else draft.categories = [...draft.categories, c.key];
+      renderCreate();
+    });
     catRow.appendChild(chip);
   });
   body.appendChild(catRow);
@@ -633,19 +648,19 @@ function renderSteps(container) {
 function updateSaveState() {
   const btn = document.getElementById("save-btn");
   if (!btn) return;
-  const ok = draft.name.trim() && draft.steps.every((s) => s.text.trim());
+  const ok = draft.name.trim() && draft.categories.length > 0 && draft.steps.every((s) => s.text.trim());
   btn.disabled = !ok;
 }
 
 function saveRecipe() {
-  if (!draft.name.trim() || !draft.steps.every((s) => s.text.trim())) return;
+  if (!draft.name.trim() || !draft.categories.length || !draft.steps.every((s) => s.text.trim())) return;
   if (!currentUid) { banner = { type: "error", text: "Connessione al database non pronta, riprova tra un istante." }; renderCreate(); return; }
   const isEditing = !!editingRecipeId;
   const original = isEditing ? recipes.find((r) => r.id === editingRecipeId) : null;
   const finish = () => {
     const data = {
       name: draft.name.trim(),
-      category: draft.category,
+      categories: draft.categories,
       coverImage: draft.coverImage || null,
       ingredients: draft.ingredients.map((i) => i.trim()).filter(Boolean),
       steps: draft.steps.map((s) => ({
@@ -803,7 +818,7 @@ function renderDetail() {
     root.appendChild(top);
 
     const body = el("div", { class: "pz-body pz-slide-in" });
-    const cat = CATEGORIES.find((c) => c.key === rec.category);
+    const cats = catsOf(rec).map((k) => CATEGORIES.find((c) => c.key === k)).filter(Boolean);
     const cover = el("div", { class: "pz-hero", style: { height: "220px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" } });
     if (rec.coverImage) cover.appendChild(el("img", { src: rec.coverImage, style: { width: "100%", height: "100%", objectFit: "cover" } }));
     else cover.innerHTML = ICONS.chef;
@@ -815,7 +830,7 @@ function renderDetail() {
       editBtn.addEventListener("click", () => {
         editingRecipeId = rec.id;
         draft = {
-          name: rec.name, category: rec.category, coverImage: rec.coverImage || null,
+          name: rec.name, categories: catsOf(rec), coverImage: rec.coverImage || null,
           ingredients: rec.ingredients && rec.ingredients.length ? [...rec.ingredients] : [""],
           steps: rec.steps.map((s) => ({
             id: s.id, text: s.text, hasTimer: !!s.hasTimer,
@@ -850,8 +865,14 @@ function renderDetail() {
     body.appendChild(cover);
 
     const titleBlock = el("div", { class: "pz-center", style: { marginBottom: "6px" } });
-    titleBlock.appendChild(el("span", { style: { fontSize: "11px", color: cat ? "var(" + cat.color + ")" : "var(--saffron)", fontWeight: 600, letterSpacing: ".03em" } }, cat ? cat.label.toUpperCase() : ""));
-    titleBlock.appendChild(el("h1", { class: "display", style: { fontSize: "27px", margin: "4px 0 2px" } }, rec.name));
+    const catPills = el("div", { class: "row", style: { gap: "6px", justifyContent: "center", flexWrap: "wrap" } });
+    cats.forEach((c) => {
+      catPills.appendChild(el("span", {
+        style: { fontSize: "10px", fontWeight: 600, letterSpacing: ".03em", color: "var(" + c.color + ")", border: "1px solid var(" + c.color + ")", borderRadius: "999px", padding: "2px 9px" },
+      }, c.label.toUpperCase()));
+    });
+    titleBlock.appendChild(catPills);
+    titleBlock.appendChild(el("h1", { class: "display", style: { fontSize: "27px", margin: "6px 0 2px" } }, rec.name));
     body.appendChild(titleBlock);
     body.appendChild(el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", margin: "0 0 20px", textAlign: "center" } },
       "di " + rec.author + " · " + rec.steps.length + " passaggi"));
@@ -1016,9 +1037,11 @@ function renderBackup() {
       }
       const r = items[i];
       const hasId = !!r.id;
+      const rawCats = Array.isArray(r.categories) ? r.categories : (r.category ? [r.category] : []);
+      const validCats = rawCats.filter((k) => CATEGORIES.some((c) => c.key === k));
       const data = {
         name: r.name,
-        category: CATEGORIES.some((c) => c.key === r.category) ? r.category : CATEGORIES[0].key,
+        categories: validCats.length ? validCats : [CATEGORIES[0].key],
         coverImage: r.coverImage || null,
         ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
         steps: r.steps.map((s) => ({
