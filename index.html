@@ -570,6 +570,8 @@ function renderDrawer() {
 
 function renderHome() {
   app.innerHTML = "";
+  const stickyWrap = el("div", { style: { position: "sticky", top: "0", zIndex: "5", background: "var(--bg)", borderBottom: "1px solid var(--line)", paddingBottom: "12px" } });
+
   const topBar = el("div", { class: "row", style: { justifyContent: "space-between", padding: "22px 20px 4px" } });
   const menuBtn = el("button", { class: "icon-btn", html: ICONS.menu, style: { color: "var(--ink)" } });
   menuBtn.addEventListener("click", () => { drawerOpen = true; renderDrawer(); });
@@ -580,28 +582,31 @@ function renderHome() {
       el("h1", { class: "display", style: { fontSize: "22px", margin: "2px 0 0" } }, "Le tue ricette"),
     ])
   );
-  app.appendChild(topBar);
+  stickyWrap.appendChild(topBar);
 
-  const body = el("div", { style: { padding: "14px 20px 0" } });
-  const bn = bannerNode();
-  if (bn) body.appendChild(bn);
-
-  const searchWrap = el("div", { class: "search-wrap" });
+  const searchRow = el("div", { style: { padding: "10px 20px 0" } });
+  const searchWrap = el("div", { class: "search-wrap", style: { marginBottom: "0" } });
   searchWrap.innerHTML = ICONS.search;
   const searchInput = el("input", { class: "search-input", placeholder: "Cerca una ricetta...", value: searchQuery });
   searchWrap.appendChild(searchInput);
-  body.appendChild(searchWrap);
+  searchRow.appendChild(searchWrap);
 
   if (filter !== "all") {
     const activeCat = CATEGORIES.find((c) => c.key === filter);
     if (activeCat) {
-      const pill = el("button", { class: "active-filter-pill", style: { background: "var(" + activeCat.color + ")", color: "var(--chalk-on-accent)" } }, [
+      const pill = el("button", { class: "active-filter-pill", style: { background: "var(" + activeCat.color + ")", color: "var(--chalk-on-accent)", marginTop: "10px", marginBottom: "0" } }, [
         activeCat.label, el("span", { html: ICONS.x, style: { display: "flex" } }),
       ]);
       pill.addEventListener("click", () => { filter = "all"; renderHome(); });
-      body.appendChild(pill);
+      searchRow.appendChild(pill);
     }
   }
+  stickyWrap.appendChild(searchRow);
+  app.appendChild(stickyWrap);
+
+  const body = el("div", { style: { padding: "14px 20px 0" } });
+  const bn = bannerNode();
+  if (bn) body.appendChild(bn);
 
   const listContainer = el("div", {});
   body.appendChild(listContainer);
