@@ -108,6 +108,21 @@
   .theme-opt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 12px; border: 1px solid var(--line); font-size: 11px; color: var(--ink-soft); }
   .theme-opt.active { border-color: var(--saffron); color: var(--ink); background: var(--card-dim); }
   .active-filter-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 14px; }
+
+  /* stories */
+  .swipe-hint { position: fixed; right: 6px; top: 50%; transform: translateY(-50%); z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--ink-soft); opacity: .55; padding: 10px 4px; }
+  .story-tray { display: flex; gap: 14px; overflow-x: auto; padding: 4px 20px 6px; }
+  .story-tray::-webkit-scrollbar { display: none; }
+  .story-avatar-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 68px; }
+  .story-avatar-ring { width: 62px; height: 62px; border-radius: 999px; padding: 2.5px; background: linear-gradient(135deg, var(--saffron), var(--clay)); display: flex; align-items: center; justify-content: center; }
+  .story-avatar-img { width: 100%; height: 100%; border-radius: 999px; overflow: hidden; border: 2px solid var(--bg); background: var(--card-dim); display: flex; align-items: center; justify-content: center; }
+  .story-avatar-img img { width: 100%; height: 100%; object-fit: cover; }
+  .story-avatar-name { font-size: 10.5px; color: var(--ink); text-align: center; max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .story-viewer { position: fixed; inset: 0; background: #000; z-index: 50; display: flex; flex-direction: column; }
+  .story-progress-row { display: flex; gap: 4px; padding: calc(env(safe-area-inset-top,0px) + 10px) 12px 0; }
+  .story-progress-seg { flex: 1; height: 3px; border-radius: 999px; background: rgba(255,255,255,.3); overflow: hidden; }
+  .story-progress-seg-fill { height: 100%; background: #fff; }
+  .story-tap-zone { position: absolute; top: 0; bottom: 0; width: 40%; z-index: 2; }
   .scroll-x { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
   .scroll-x::-webkit-scrollbar { display: none; }
   @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .5 } }
@@ -192,6 +207,9 @@ const ICONS = {
   thumbFilled: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 10v12H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/><path d="M9.5 22h8a2 2 0 0 0 1.95-1.57l2.34-8A2 2 0 0 0 19.83 10H14l1-4.12A3.13 3.13 0 0 0 12 2L8.55 8.89A2 2 0 0 1 6.76 10H7v10.5A1.5 1.5 0 0 0 8.5 22Z"/></svg>',
   menu: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>',
   chevronDown: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+  camera: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>',
+  chevronLeft: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+  chevronRight: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
 };
 
 const CATEGORIES = [
@@ -310,6 +328,9 @@ let AUTH_PHOTO = null;
 let AUTH_EMAIL = null;
 let recipes = [];
 let myFavorites = [];
+let stories = [];
+let storyViewerIndex = null;
+const STORY_TTL = 24 * 60 * 60 * 1000;
 let route = { screen: "login", selectedId: null };
 let filter = "all";
 let drawerOpen = false;
@@ -334,6 +355,7 @@ function initFirebase() {
       if (route.screen === "login") route = { screen: "home", selectedId: null };
       subscribeRecipes();
       subscribeFavorites();
+      subscribeStories();
       render();
     } else {
       currentUid = null;
@@ -369,6 +391,49 @@ function toggleVote(rec) {
   const op = hasVoted ? firebase.firestore.FieldValue.arrayRemove(currentUid) : firebase.firestore.FieldValue.arrayUnion(currentUid);
   fdb.collection("recipes").doc(rec.id).update({ votedBy: op }).catch((e) => console.error(e));
 }
+
+/* ---------------- stories (24h) ---------------- */
+function subscribeStories() {
+  fdb.collection("stories").orderBy("createdAt", "desc").limit(200).onSnapshot(
+    (snap) => {
+      const now = Date.now();
+      stories = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((s) => now - s.createdAt < STORY_TTL);
+      snap.docs.forEach((d) => {
+        const s = d.data();
+        if (s.authorUid === currentUid && now - s.createdAt >= STORY_TTL) {
+          fdb.collection("stories").doc(d.id).delete().catch(() => {});
+        }
+      });
+      if (route.screen === "stories") renderStories();
+    },
+    (err) => console.error("stories onSnapshot error", err)
+  );
+}
+
+function publishStory(recipe, imageDataUrl) {
+  return fdb.collection("stories").add({
+    authorUid: currentUid,
+    authorName: AUTH_USER,
+    recipeId: recipe.id,
+    recipeName: recipe.name,
+    image: imageDataUrl,
+    createdAt: Date.now(),
+  });
+}
+
+function deleteStory(id) {
+  fdb.collection("stories").doc(id).delete().catch((e) => console.error(e));
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor(diff / 60000);
+  if (h >= 1) return h + "h fa";
+  if (m >= 1) return m + "m fa";
+  return "ora";
+}
+
 function subscribeRecipes() {
   fdb.collection("recipes").orderBy("createdAt", "desc").limit(200).onSnapshot(
     (snap) => {
@@ -453,6 +518,8 @@ function renderCurrent() {
   else if (route.screen === "create") renderCreate();
   else if (route.screen === "backup") renderBackup();
   else if (route.screen === "favorites") renderFavorites();
+  else if (route.screen === "stories") renderStories();
+  else if (route.screen === "story-create") renderStoryCreate();
   else renderLogin();
 }
 
@@ -603,6 +670,12 @@ function renderHome() {
   }
   stickyWrap.appendChild(searchRow);
   app.appendChild(stickyWrap);
+
+  const swipeHint = el("button", { class: "swipe-hint", onclick: () => { route = { screen: "stories", selectedId: null }; render(); } }, [
+    el("span", { html: ICONS.camera }),
+    el("span", { html: ICONS.chevronRight, style: { opacity: .6 } }),
+  ]);
+  app.appendChild(swipeHint);
 
   const body = el("div", { style: { padding: "14px 20px 0" } });
   const bn = bannerNode();
@@ -1069,12 +1142,14 @@ function renderDetail() {
     const body = el("div", { class: "pz-body pz-slide-in", style: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", height: "100%" } });
     body.appendChild(el("div", { style: { fontSize: "52px", marginBottom: "10px" } }, "🎉"));
     body.appendChild(el("h1", { class: "display", style: { fontSize: "24px", margin: "0 0 6px" } }, "Ricetta completata!"));
-    body.appendChild(el("p", { style: { fontSize: "13px", color: "var(--ink-soft)", marginBottom: "26px" } }, rec.name));
+    body.appendChild(el("p", { style: { fontSize: "13px", color: "var(--ink-soft)", marginBottom: "20px" } }, rec.name));
+    const storyBtn = el("button", { class: "btn-primary", style: { marginBottom: "10px", maxWidth: "300px" } }, [el("span", { html: ICONS.camera }), " Crea una storia con la foto del tuo piatto"]);
+    storyBtn.addEventListener("click", () => { route = { screen: "story-create", selectedId: rec.id }; render(); });
     const redo = el("button", { class: "btn-ghost", style: { marginBottom: "10px", maxWidth: "260px" } }, "Rivedi i passaggi");
     redo.addEventListener("click", () => goToStep(0));
-    const home = el("button", { class: "btn-primary", style: { maxWidth: "260px" } }, "Torna alle ricette");
+    const home = el("button", { class: "btn-ghost", style: { maxWidth: "260px", color: "var(--ink-soft)" } }, "Torna alle ricette");
     home.addEventListener("click", exitToHome);
-    body.append(redo, home);
+    body.append(storyBtn, redo, home);
     root.appendChild(body);
     app.appendChild(root);
     return;
@@ -1113,6 +1188,157 @@ function renderDetail() {
   root.appendChild(navbar);
 
   app.appendChild(root);
+}
+
+/* ---------------- story create ---------------- */
+function renderStoryCreate() {
+  app.innerHTML = "";
+  const rec = recipes.find((r) => r.id === route.selectedId);
+  const backTo = () => { if (rec) { timers = {}; route = { screen: "detail", selectedId: rec.id, step: rec.steps.length }; } else { route = { screen: "home", selectedId: null }; } render(); };
+  app.appendChild(header({ title: "Nuova storia", back: true, onBack: backTo }));
+  const body = el("div", { style: { padding: "0 20px" } });
+  if (!rec) {
+    body.appendChild(el("p", { style: { fontSize: "13px", color: "var(--ink-soft)" } }, "Ricetta non trovata."));
+    app.appendChild(body);
+    return;
+  }
+  body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", marginBottom: "14px" } },
+    "La storia sarà collegata a \"" + rec.name + "\" e sparirà automaticamente dopo 24 ore."));
+
+  let storyImage = null;
+  const photoLabel = el("label", { class: "card", style: { width: "100%", height: "280px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginBottom: "16px", overflow: "hidden" } });
+  photoLabel.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--ink-soft)">' + ICONS.camera + '<span style="font-size:13px">Scatta o scegli una foto del piatto</span></div>';
+  const photoInput = el("input", { type: "file", accept: "image/*", capture: "environment", style: { display: "none" } });
+  const publishBtn = el("button", { class: "btn-primary" }, "Pubblica storia");
+  publishBtn.disabled = true;
+  photoInput.addEventListener("change", (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    compressImage(file, 900, 0.65).then((dataUrl) => {
+      storyImage = dataUrl;
+      photoLabel.innerHTML = "";
+      photoLabel.appendChild(el("img", { src: dataUrl, style: { width: "100%", height: "100%", objectFit: "cover" } }));
+      photoLabel.appendChild(photoInput);
+      publishBtn.disabled = false;
+    }).catch((err) => console.error(err));
+  });
+  photoLabel.appendChild(photoInput);
+  body.appendChild(photoLabel);
+
+  publishBtn.addEventListener("click", () => {
+    if (!storyImage) return;
+    publishBtn.disabled = true;
+    publishBtn.textContent = "Pubblicazione…";
+    publishStory(rec, storyImage).then(() => {
+      route = { screen: "stories", selectedId: null };
+      render();
+    }).catch((e) => {
+      console.error(e);
+      banner = { type: "error", text: "Pubblicazione storia non riuscita: " + e.code };
+      publishBtn.disabled = false;
+      publishBtn.textContent = "Pubblica storia";
+    });
+  });
+  body.appendChild(publishBtn);
+  app.appendChild(body);
+}
+
+/* ---------------- stories feed ---------------- */
+function renderStories() {
+  app.innerHTML = "";
+  const existingViewer = document.getElementById("story-viewer-el");
+  if (existingViewer) existingViewer.remove();
+  const top = el("div", { class: "row", style: { justifyContent: "space-between", padding: "22px 20px 14px" } });
+  const homeBtn = el("button", { class: "icon-btn", html: ICONS.chevronLeft, onclick: () => { route = { screen: "home", selectedId: null }; render(); } });
+  top.append(homeBtn, el("h2", { class: "display", style: { fontSize: "18px" } }, "Storie"), el("div", { style: { width: "22px" } }));
+  app.appendChild(top);
+
+  if (stories.length === 0) {
+    app.appendChild(el("div", { style: { textAlign: "center", padding: "80px 30px", color: "var(--ink-soft)" } }, [
+      el("div", { html: ICONS.camera, style: { display: "flex", justifyContent: "center", marginBottom: "10px" } }),
+      el("p", { style: { fontSize: "13px" } }, "Nessuna storia nelle ultime 24 ore. Finisci una ricetta e pubblica la foto del tuo piatto!"),
+    ]));
+    return;
+  }
+
+  const byAuthor = {};
+  stories.forEach((s, idx) => {
+    if (!byAuthor[s.authorUid]) byAuthor[s.authorUid] = { name: s.authorName, items: [] };
+    byAuthor[s.authorUid].items.push(idx);
+  });
+
+  const tray = el("div", { class: "story-tray" });
+  Object.values(byAuthor).forEach((group) => {
+    const firstIdx = group.items[0];
+    const s = stories[firstIdx];
+    const wrap = el("button", { class: "story-avatar-wrap" });
+    wrap.appendChild(el("div", { class: "story-avatar-ring" }, [
+      el("div", { class: "story-avatar-img" }, [el("img", { src: s.image })]),
+    ]));
+    wrap.appendChild(el("span", { class: "story-avatar-name" }, s.authorName));
+    wrap.addEventListener("click", () => { storyViewerIndex = firstIdx; renderStories(); });
+    tray.appendChild(wrap);
+  });
+  app.appendChild(tray);
+
+  app.appendChild(el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", padding: "10px 20px" } },
+    "Tocca una persona per vedere il suo piatto — sparisce dopo 24 ore."));
+
+  if (storyViewerIndex !== null && stories[storyViewerIndex]) {
+    renderStoryViewer(storyViewerIndex);
+  }
+}
+
+function renderStoryViewer(index) {
+  const existing = document.getElementById("story-viewer-el");
+  if (existing) existing.remove();
+  const s = stories[index];
+  const viewer = el("div", { class: "story-viewer", id: "story-viewer-el" });
+
+  const progressRow = el("div", { class: "story-progress-row" });
+  stories.forEach((st, i) => {
+    progressRow.appendChild(el("div", { class: "story-progress-seg" }, [
+      el("div", { class: "story-progress-seg-fill", style: { width: i <= index ? "100%" : "0%" } }),
+    ]));
+  });
+  viewer.appendChild(progressRow);
+
+  const topRow = el("div", { class: "row", style: { justifyContent: "space-between", padding: "10px 14px", color: "#fff", zIndex: "3", position: "relative" } }, [
+    el("div", { class: "row", style: { gap: "8px" } }, [
+      el("span", { style: { fontSize: "13px", fontWeight: 600 } }, s.authorName),
+      el("span", { style: { fontSize: "11px", opacity: .7 } }, timeAgo(s.createdAt)),
+    ]),
+    el("button", { html: ICONS.x, style: { color: "#fff" }, onclick: () => { storyViewerIndex = null; renderStories(); } }),
+  ]);
+  viewer.appendChild(topRow);
+
+  const imgWrap = el("div", { style: { flex: 1, position: "relative", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" } });
+  imgWrap.appendChild(el("img", { src: s.image, style: { width: "100%", height: "100%", objectFit: "cover" } }));
+  const prevZone = el("div", { class: "story-tap-zone", style: { left: "0" }, onclick: () => {
+    if (index > 0) { storyViewerIndex = index - 1; renderStories(); } else { storyViewerIndex = null; renderStories(); }
+  }});
+  const nextZone = el("div", { class: "story-tap-zone", style: { right: "0" }, onclick: () => {
+    if (index < stories.length - 1) { storyViewerIndex = index + 1; renderStories(); } else { storyViewerIndex = null; renderStories(); }
+  }});
+  imgWrap.append(prevZone, nextZone);
+  viewer.appendChild(imgWrap);
+
+  const bottomBar = el("div", { style: { padding: "16px 16px calc(env(safe-area-inset-bottom,0px) + 16px)", position: "relative", zIndex: "3" } });
+  const recipeBtn = el("button", { class: "btn-primary" }, "Vai alla ricetta: " + s.recipeName);
+  recipeBtn.addEventListener("click", () => {
+    storyViewerIndex = null;
+    timers = {};
+    route = { screen: "detail", selectedId: s.recipeId, step: -1 };
+    render();
+  });
+  bottomBar.appendChild(recipeBtn);
+  if (s.authorUid === currentUid) {
+    const delBtn = el("button", { class: "btn-ghost", style: { marginTop: "8px", color: "#fff", borderColor: "rgba(255,255,255,.3)" } }, "Elimina storia");
+    delBtn.addEventListener("click", () => { deleteStory(s.id); storyViewerIndex = null; });
+    bottomBar.appendChild(delBtn);
+  }
+  viewer.appendChild(bottomBar);
+
+  document.body.appendChild(viewer);
 }
 
 /* ---------------- favorites ---------------- */
@@ -1245,8 +1471,29 @@ function render() {
   else if (route.screen === "detail") renderDetail();
   else if (route.screen === "backup") renderBackup();
   else if (route.screen === "favorites") renderFavorites();
+  else if (route.screen === "stories") renderStories();
+  else if (route.screen === "story-create") renderStoryCreate();
   else renderHome();
 }
+function attachSwipeNav() {
+  let startX = 0, startY = 0, tracking = false;
+  document.addEventListener("touchstart", (e) => {
+    if (drawerOpen || document.getElementById("story-viewer-el")) { tracking = false; return; }
+    if (!(route.screen === "home" || route.screen === "stories")) { tracking = false; return; }
+    const t = e.touches[0]; startX = t.clientX; startY = t.clientY; tracking = true;
+  }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX, dy = t.clientY - startY;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (dx > 0 && route.screen === "home") { route = { screen: "stories", selectedId: null }; render(); }
+      else if (dx < 0 && route.screen === "stories") { route = { screen: "home", selectedId: null }; render(); }
+    }
+  }, { passive: true });
+}
+attachSwipeNav();
 render();
 initFirebase();
 </script>
