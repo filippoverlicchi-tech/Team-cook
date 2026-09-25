@@ -125,6 +125,13 @@
   .story-progress-seg { flex: 1; height: 3px; border-radius: 999px; background: rgba(255,255,255,.3); overflow: hidden; }
   .story-progress-seg-fill { height: 100%; background: #fff; }
   .story-tap-zone { position: absolute; top: 0; bottom: 0; width: 40%; z-index: 2; }
+
+  /* bottom tab bar */
+  .bottom-tabbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 480px; display: flex; align-items: center; justify-content: space-around; background: var(--card); border-top: 1px solid var(--line); padding: 9px 6px calc(env(safe-area-inset-bottom, 0px) + 8px); z-index: 15; box-shadow: 0 -4px 16px rgba(0,0,0,.06); }
+  .tab-item { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--ink-soft); font-size: 9.5px; padding: 4px 8px; }
+  .tab-item.active { color: var(--saffron); }
+  .tab-item-plus { width: 48px; height: 48px; border-radius: 999px; background: var(--saffron); color: var(--chalk-on-accent); display: flex; align-items: center; justify-content: center; margin-top: -24px; box-shadow: 0 6px 16px color-mix(in srgb, var(--saffron) 45%, transparent); }
+  .tab-item-plus:active { transform: scale(0.95); }
   .scroll-x { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
   .scroll-x::-webkit-scrollbar { display: none; }
   @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .5 } }
@@ -515,6 +522,7 @@ function bannerNode() {
 }
 
 function renderCurrent() {
+  const tb0 = document.getElementById("bottom-tabbar"); if (tb0) tb0.remove();
   if (route.screen === "home") renderHome();
   else if (route.screen === "detail") renderDetail();
   else if (route.screen === "create") renderCreate();
@@ -641,6 +649,32 @@ function renderDrawer() {
   document.body.appendChild(backdrop);
 }
 
+function renderBottomTabBar(active) {
+  const existing = document.getElementById("bottom-tabbar");
+  if (existing) existing.remove();
+  const bar = el("div", { class: "bottom-tabbar", id: "bottom-tabbar" });
+
+  const mk = (icon, label, key, onClick) =>
+    el("button", { class: "tab-item" + (active === key ? " active" : ""), onclick: onClick }, [el("span", { html: icon }), label]);
+
+  bar.appendChild(mk(ICONS.chef, "Ricette", "home", () => { route = { screen: "home", selectedId: null }; render(); }));
+  bar.appendChild(mk(ICONS.camera, "Storie", "stories", () => { route = { screen: "stories", selectedId: null }; render(); }));
+
+  const plusBtn = el("button", { class: "tab-item-plus", html: ICONS.plus });
+  plusBtn.addEventListener("click", () => {
+    draft = { name: "", categories: [CATEGORIES[0].key], coverImage: null,
+      ingredients: [""], steps: [{ id: rid(), text: "", hasTimer: false, minutes: "5", seconds: "0", image: null }] };
+    route = { screen: "create", selectedId: null };
+    render();
+  });
+  bar.appendChild(plusBtn);
+
+  bar.appendChild(mk(ICONS.heart, "Preferiti", "favorites", () => { route = { screen: "favorites", selectedId: null }; render(); }));
+  bar.appendChild(mk(ICONS.menu, "Menu", "menu", () => { drawerOpen = true; renderDrawer(); }));
+
+  document.body.appendChild(bar);
+}
+
 function renderHome() {
   app.innerHTML = "";
   const stickyWrap = el("div", { style: { position: "sticky", top: "0", zIndex: "5", background: "var(--bg)", borderBottom: "1px solid var(--line)", paddingBottom: "12px" } });
@@ -677,13 +711,7 @@ function renderHome() {
   stickyWrap.appendChild(searchRow);
   app.appendChild(stickyWrap);
 
-  const swipeHint = el("button", { class: "swipe-hint", onclick: () => { route = { screen: "stories", selectedId: null }; render(); } }, [
-    el("span", { html: ICONS.camera }),
-    "Storie",
-  ]);
-  app.appendChild(swipeHint);
-
-  const body = el("div", { style: { padding: "14px 20px 0" } });
+  const body = el("div", { style: { padding: "14px 20px 90px" } });
   const bn = bannerNode();
   if (bn) body.appendChild(bn);
 
@@ -709,15 +737,7 @@ function renderHome() {
   }
   searchInput.addEventListener("input", (e) => { searchQuery = e.target.value; renderRecipeList(); });
   renderRecipeList();
-
-  const fab = el("button", { class: "fab" }, [el("span", { html: ICONS.plus }), "Nuova ricetta"]);
-  fab.addEventListener("click", () => {
-    draft = { name: "", categories: [CATEGORIES[0].key], coverImage: null,
-      ingredients: [""], steps: [{ id: rid(), text: "", hasTimer: false, minutes: "5", seconds: "0", image: null }] };
-    route = { screen: "create", selectedId: null };
-    render();
-  });
-  app.appendChild(fab);
+  renderBottomTabBar("home");
 }
 
 /* ---------------- create ---------------- */
@@ -1270,6 +1290,7 @@ function renderStories() {
     stories.forEach((s) => body.appendChild(storyPostCard(s)));
   }
   app.appendChild(body);
+  renderBottomTabBar("stories");
 }
 
 function storyPostCard(s) {
@@ -1318,7 +1339,7 @@ function storyPostCard(s) {
 function renderFavorites() {
   app.innerHTML = "";
   app.appendChild(header({ title: "Preferiti", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
-  const body = el("div", { style: { padding: "0 20px" } });
+  const body = el("div", { style: { padding: "0 20px 90px" } });
   let list = recipes.filter((r) => myFavorites.includes(r.id));
   list = [...list].sort((a, b) => (Array.isArray(b.votedBy) ? b.votedBy.length : 0) - (Array.isArray(a.votedBy) ? a.votedBy.length : 0));
   if (list.length === 0) {
@@ -1331,6 +1352,7 @@ function renderFavorites() {
     body.appendChild(grid);
   }
   app.appendChild(body);
+  renderBottomTabBar("favorites");
 }
 
 /* ---------------- backup / bulk import (admin) ---------------- */
@@ -1346,7 +1368,7 @@ function downloadJSON(filename, data) {
 function renderBackup() {
   app.innerHTML = "";
   app.appendChild(header({ title: "Backup ricette", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
-  const body = el("div", { style: { padding: "0 20px" } });
+  const body = el("div", { style: { padding: "0 20px 90px" } });
   const bn = bannerNode();
   if (bn) body.appendChild(bn);
 
@@ -1435,10 +1457,12 @@ function renderBackup() {
   });
 
   app.appendChild(body);
+  renderBottomTabBar(null);
 }
 
 /* ---------------- boot ---------------- */
 function render() {
+  const tb0 = document.getElementById("bottom-tabbar"); if (tb0) tb0.remove();
   if (route.screen === "login") renderLogin();
   else if (route.screen === "create") renderCreate();
   else if (route.screen === "detail") renderDetail();
@@ -1461,8 +1485,8 @@ function attachSwipeNav() {
     const t = e.changedTouches[0];
     const dx = t.clientX - startX, dy = t.clientY - startY;
     if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-      if (dx > 0 && route.screen === "home") { route = { screen: "stories", selectedId: null }; render(); }
-      else if (dx < 0 && route.screen === "stories") { route = { screen: "home", selectedId: null }; render(); }
+      if (dx < 0 && route.screen === "home") { route = { screen: "stories", selectedId: null }; render(); }
+      else if (dx > 0 && route.screen === "stories") { route = { screen: "home", selectedId: null }; render(); }
     }
   }, { passive: true });
 }
