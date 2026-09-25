@@ -580,6 +580,10 @@ function renderDrawer() {
     el("span", { class: "display", style: { fontSize: "17px" } }, "La Tua Cucina"),
   ]));
 
+  const homeItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.chef }), "Le tue ricette"]);
+  homeItem.addEventListener("click", () => { closeDrawer(); route = { screen: "home", selectedId: null }; render(); });
+  panel.appendChild(homeItem);
+
   const favItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.heart }), "Preferiti"]);
   favItem.addEventListener("click", () => { closeDrawer(); route = { screen: "favorites", selectedId: null }; render(); });
   panel.appendChild(favItem);
@@ -1247,100 +1251,67 @@ function renderStoryCreate() {
 /* ---------------- stories feed ---------------- */
 function renderStories() {
   app.innerHTML = "";
-  const existingViewer = document.getElementById("story-viewer-el");
-  if (existingViewer) existingViewer.remove();
-  const top = el("div", { class: "row", style: { justifyContent: "space-between", padding: "22px 20px 14px" } });
-  const homeBtn = el("button", { class: "icon-btn", html: ICONS.chevronLeft, onclick: () => { route = { screen: "home", selectedId: null }; render(); } });
-  top.append(homeBtn, el("h2", { class: "display", style: { fontSize: "18px" } }, "Storie"), el("div", { style: { width: "22px" } }));
-  app.appendChild(top);
+  const stickyWrap = el("div", { style: { position: "sticky", top: "0", zIndex: "5", background: "var(--bg)", borderBottom: "1px solid var(--line)", paddingBottom: "10px" } });
+  const top = el("div", { class: "row", style: { justifyContent: "space-between", padding: "22px 20px 4px" } });
+  const menuBtn = el("button", { class: "icon-btn", html: ICONS.menu, style: { color: "var(--ink)" } });
+  menuBtn.addEventListener("click", () => { drawerOpen = true; renderDrawer(); });
+  top.append(menuBtn, el("h2", { class: "display", style: { fontSize: "19px" } }, "Storie"), el("div", { style: { width: "22px" } }));
+  stickyWrap.appendChild(top);
+  app.appendChild(stickyWrap);
+
+  const body = el("div", { style: { padding: "14px 20px 90px" } });
 
   if (stories.length === 0) {
-    app.appendChild(el("div", { style: { textAlign: "center", padding: "80px 30px", color: "var(--ink-soft)" } }, [
+    body.appendChild(el("div", { style: { textAlign: "center", padding: "70px 30px", color: "var(--ink-soft)" } }, [
       el("div", { html: ICONS.camera, style: { display: "flex", justifyContent: "center", marginBottom: "10px" } }),
       el("p", { style: { fontSize: "13px" } }, "Nessuna storia nelle ultime 24 ore. Finisci una ricetta e pubblica la foto del tuo piatto!"),
     ]));
-    return;
+  } else {
+    stories.forEach((s) => body.appendChild(storyPostCard(s)));
   }
-
-  const byAuthor = {};
-  stories.forEach((s, idx) => {
-    if (!byAuthor[s.authorUid]) byAuthor[s.authorUid] = { name: s.authorName, items: [] };
-    byAuthor[s.authorUid].items.push(idx);
-  });
-
-  const tray = el("div", { class: "story-tray" });
-  Object.values(byAuthor).forEach((group) => {
-    const firstIdx = group.items[0];
-    const s = stories[firstIdx];
-    const wrap = el("button", { class: "story-avatar-wrap" });
-    wrap.appendChild(el("div", { class: "story-avatar-ring" }, [
-      el("div", { class: "story-avatar-img" }, [el("img", { src: s.image })]),
-    ]));
-    wrap.appendChild(el("span", { class: "story-avatar-name" }, s.authorName));
-    wrap.addEventListener("click", () => { storyViewerIndex = firstIdx; renderStories(); });
-    tray.appendChild(wrap);
-  });
-  app.appendChild(tray);
-
-  app.appendChild(el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", padding: "10px 20px" } },
-    "Tocca una persona per vedere il suo piatto — sparisce dopo 24 ore."));
-
-  if (storyViewerIndex !== null && stories[storyViewerIndex]) {
-    renderStoryViewer(storyViewerIndex);
-  }
+  app.appendChild(body);
 }
 
-function renderStoryViewer(index) {
-  const existing = document.getElementById("story-viewer-el");
-  if (existing) existing.remove();
-  const s = stories[index];
-  const viewer = el("div", { class: "story-viewer", id: "story-viewer-el" });
+function storyPostCard(s) {
+  const card = el("div", { class: "card", style: { marginBottom: "18px", overflow: "visible" } });
 
-  const progressRow = el("div", { class: "story-progress-row" });
-  stories.forEach((st, i) => {
-    progressRow.appendChild(el("div", { class: "story-progress-seg" }, [
-      el("div", { class: "story-progress-seg-fill", style: { width: i <= index ? "100%" : "0%" } }),
-    ]));
-  });
-  viewer.appendChild(progressRow);
+  const cardTop = el("div", { class: "row", style: { justifyContent: "space-between", padding: "12px 14px" } });
+  cardTop.append(
+    el("div", { class: "row", style: { gap: "10px" } }, [
+      el("div", { style: { width: "34px", height: "34px", borderRadius: "999px", overflow: "hidden", flexShrink: 0, border: "2px solid var(--saffron)" } }, [
+        el("img", { src: s.image, style: { width: "100%", height: "100%", objectFit: "cover" } }),
+      ]),
+      el("div", {}, [
+        el("p", { style: { fontSize: "13px", fontWeight: 600, margin: 0 } }, s.authorName),
+        el("p", { style: { fontSize: "10.5px", color: "var(--ink-soft)", margin: 0 } }, timeAgo(s.createdAt) + " · sparisce tra 24h"),
+      ]),
+    ])
+  );
+  if (s.authorUid === currentUid) {
+    const delBtn = el("button", { html: ICONS.trash, style: { color: "var(--ink-soft)" } });
+    delBtn.addEventListener("click", () => deleteStory(s.id));
+    cardTop.appendChild(delBtn);
+  }
+  card.appendChild(cardTop);
 
-  const topRow = el("div", { class: "row", style: { justifyContent: "space-between", padding: "10px 14px", color: "#fff", zIndex: "3", position: "relative" } }, [
-    el("div", { class: "row", style: { gap: "8px" } }, [
-      el("span", { style: { fontSize: "13px", fontWeight: 600 } }, s.authorName),
-      el("span", { style: { fontSize: "11px", opacity: .7 } }, timeAgo(s.createdAt)),
-    ]),
-    el("button", { html: ICONS.x, style: { color: "#fff" }, onclick: () => { storyViewerIndex = null; renderStories(); } }),
-  ]);
-  viewer.appendChild(topRow);
+  card.appendChild(el("div", { style: { width: "100%", aspectRatio: "1 / 1", background: "var(--card-dim)" } }, [
+    el("img", { src: s.image, style: { width: "100%", height: "100%", objectFit: "cover" } }),
+  ]));
 
-  const imgWrap = el("div", { style: { flex: 1, position: "relative", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" } });
-  imgWrap.appendChild(el("img", { src: s.image, style: { width: "100%", height: "100%", objectFit: "cover" } }));
-  const prevZone = el("div", { class: "story-tap-zone", style: { left: "0" }, onclick: () => {
-    if (index > 0) { storyViewerIndex = index - 1; renderStories(); } else { storyViewerIndex = null; renderStories(); }
-  }});
-  const nextZone = el("div", { class: "story-tap-zone", style: { right: "0" }, onclick: () => {
-    if (index < stories.length - 1) { storyViewerIndex = index + 1; renderStories(); } else { storyViewerIndex = null; renderStories(); }
-  }});
-  imgWrap.append(prevZone, nextZone);
-  viewer.appendChild(imgWrap);
-
-  const bottomBar = el("div", { style: { padding: "16px 16px calc(env(safe-area-inset-bottom,0px) + 16px)", position: "relative", zIndex: "3" } });
-  const recipeBtn = el("button", { class: "btn-primary" }, "Vai alla ricetta: " + s.recipeName);
+  const bottom = el("div", { style: { padding: "12px 14px" } });
+  bottom.appendChild(el("p", { style: { fontSize: "13px", margin: "0 0 10px" } }, [
+    el("strong", {}, s.authorName), " ha cucinato ", el("strong", {}, s.recipeName),
+  ]));
+  const recipeBtn = el("button", { class: "btn-primary", style: { padding: "11px" } }, "Vai alla ricetta");
   recipeBtn.addEventListener("click", () => {
-    storyViewerIndex = null;
     timers = {};
     route = { screen: "detail", selectedId: s.recipeId, step: -1 };
     render();
   });
-  bottomBar.appendChild(recipeBtn);
-  if (s.authorUid === currentUid) {
-    const delBtn = el("button", { class: "btn-ghost", style: { marginTop: "8px", color: "#fff", borderColor: "rgba(255,255,255,.3)" } }, "Elimina storia");
-    delBtn.addEventListener("click", () => { deleteStory(s.id); storyViewerIndex = null; });
-    bottomBar.appendChild(delBtn);
-  }
-  viewer.appendChild(bottomBar);
+  bottom.appendChild(recipeBtn);
+  card.appendChild(bottom);
 
-  document.body.appendChild(viewer);
+  return card;
 }
 
 /* ---------------- favorites ---------------- */
@@ -1480,7 +1451,7 @@ function render() {
 function attachSwipeNav() {
   let startX = 0, startY = 0, tracking = false;
   document.addEventListener("touchstart", (e) => {
-    if (drawerOpen || document.getElementById("story-viewer-el")) { tracking = false; return; }
+    if (drawerOpen) { tracking = false; return; }
     if (!(route.screen === "home" || route.screen === "stories")) { tracking = false; return; }
     const t = e.touches[0]; startX = t.clientX; startY = t.clientY; tracking = true;
   }, { passive: true });
