@@ -110,7 +110,9 @@
   .active-filter-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 14px; }
 
   /* stories */
-  .swipe-hint { position: fixed; right: 6px; top: 50%; transform: translateY(-50%); z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--ink-soft); opacity: .55; padding: 10px 4px; }
+  .swipe-hint { position: fixed; left: 20px; bottom: 24px; z-index: 6; display: flex; align-items: center; gap: 8px; padding: 14px 18px; border-radius: 999px; background: var(--card); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(0,0,0,.12); font-size: 13px; font-weight: 600; }
+  .swipe-hint:active { transform: scale(0.96); }
+  @media (max-width: 480px) { .swipe-hint { left: 20px; } }
   .story-tray { display: flex; gap: 14px; overflow-x: auto; padding: 4px 20px 6px; }
   .story-tray::-webkit-scrollbar { display: none; }
   .story-avatar-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 68px; }
@@ -673,7 +675,7 @@ function renderHome() {
 
   const swipeHint = el("button", { class: "swipe-hint", onclick: () => { route = { screen: "stories", selectedId: null }; render(); } }, [
     el("span", { html: ICONS.camera }),
-    el("span", { html: ICONS.chevronRight, style: { opacity: .6 } }),
+    "Storie",
   ]);
   app.appendChild(swipeHint);
 
