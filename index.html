@@ -132,6 +132,15 @@
   .tab-item.active { color: var(--saffron); }
   .tab-item-plus { width: 48px; height: 48px; border-radius: 999px; background: var(--saffron); color: var(--chalk-on-accent); display: flex; align-items: center; justify-content: center; margin-top: -24px; box-shadow: 0 6px 16px color-mix(in srgb, var(--saffron) 45%, transparent); }
   .tab-item-plus:active { transform: scale(0.95); }
+
+  /* profile */
+  .profile-avatar-lg { width: 84px; height: 84px; border-radius: 999px; overflow: hidden; background: var(--card-dim); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 3px solid var(--card); box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+  .profile-avatar-lg img { width: 100%; height: 100%; object-fit: cover; }
+  .profile-stat { display: flex; flex-direction: column; align-items: center; flex: 1; }
+  .profile-stat b { font-size: 17px; font-family: 'Fraunces', Georgia, serif; }
+  .profile-stat span { font-size: 11px; color: var(--ink-soft); }
+  .exclusive-badge { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; background: rgba(20,20,20,.6); backdrop-filter: blur(3px); color: #fff; font-size: 9.5px; font-weight: 600; }
+  .locked-box { text-align: center; padding: 50px 24px; color: var(--ink-soft); }
   .scroll-x { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
   .scroll-x::-webkit-scrollbar { display: none; }
   @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .5 } }
@@ -219,6 +228,9 @@ const ICONS = {
   camera: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>',
   chevronLeft: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
   chevronRight: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+  person: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  lock: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  gear: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>',
 };
 
 const CATEGORIES = [
@@ -340,6 +352,9 @@ let myFavorites = [];
 let stories = [];
 let storyViewerIndex = null;
 const STORY_TTL = 24 * 60 * 60 * 1000;
+let myFollowing = [];
+let profileCache = {};
+const MAX_EXCLUSIVE = 40;
 let route = { screen: "login", selectedId: null };
 let filter = "all";
 let drawerOpen = false;
@@ -365,6 +380,8 @@ function initFirebase() {
       subscribeRecipes();
       subscribeFavorites();
       subscribeStories();
+      subscribeFollowing();
+      ensureProfileDoc();
       render();
     } else {
       currentUid = null;
@@ -372,6 +389,8 @@ function initFirebase() {
       AUTH_PHOTO = null;
       AUTH_EMAIL = null;
       myFavorites = [];
+      myFollowing = [];
+      profileCache = {};
       route = { screen: "login", selectedId: null };
       render();
     }
@@ -441,6 +460,56 @@ function timeAgo(ts) {
   if (h >= 1) return h + "h fa";
   if (m >= 1) return m + "m fa";
   return "ora";
+}
+
+/* ---------------- profiles & follow ---------------- */
+function ensureProfileDoc() {
+  const ref = fdb.collection("profiles").doc(currentUid);
+  ref.get().then((doc) => {
+    if (!doc.exists) ref.set({ displayName: AUTH_USER, photoURL: AUTH_PHOTO || null });
+  }).catch((e) => console.error(e));
+}
+
+function subscribeFollowing() {
+  fdb.collection("follows").where("followerUid", "==", currentUid).onSnapshot(
+    (snap) => {
+      myFollowing = snap.docs.map((d) => d.data().targetUid);
+      renderCurrent();
+    },
+    (err) => console.error("follows onSnapshot error", err)
+  );
+}
+
+function followDocId(followerUid, targetUid) { return followerUid + "_" + targetUid; }
+
+function toggleFollow(targetUid) {
+  const id = followDocId(currentUid, targetUid);
+  if (myFollowing.includes(targetUid)) {
+    fdb.collection("follows").doc(id).delete().catch((e) => console.error(e));
+  } else {
+    fdb.collection("follows").doc(id).set({ followerUid: currentUid, targetUid, createdAt: Date.now() }).catch((e) => console.error(e));
+  }
+}
+
+function fetchProfile(uid, cb) {
+  if (profileCache[uid]) { cb(profileCache[uid]); return; }
+  fdb.collection("profiles").doc(uid).get().then((doc) => {
+    const data = doc.exists ? doc.data() : {};
+    profileCache[uid] = {
+      displayName: data.displayName || (uid === currentUid ? AUTH_USER : "Utente"),
+      photoURL: data.photoURL || null,
+    };
+    cb(profileCache[uid]);
+  }).catch((e) => { console.error(e); cb({ displayName: "Utente", photoURL: null }); });
+}
+
+function countFollowers(uid, cb) {
+  fdb.collection("follows").where("targetUid", "==", uid).get()
+    .then((snap) => cb(snap.size)).catch(() => cb(0));
+}
+function countFollowing(uid, cb) {
+  fdb.collection("follows").where("followerUid", "==", uid).get()
+    .then((snap) => cb(snap.size)).catch(() => cb(0));
 }
 
 function subscribeRecipes() {
@@ -528,6 +597,8 @@ function renderCurrent() {
   else if (route.screen === "create") renderCreate();
   else if (route.screen === "backup") renderBackup();
   else if (route.screen === "favorites") renderFavorites();
+  else if (route.screen === "profile") renderProfile();
+  else if (route.screen === "profile-edit") renderProfileEdit();
   else if (route.screen === "stories") renderStories();
   else if (route.screen === "story-create") renderStoryCreate();
   else renderLogin();
@@ -541,12 +612,15 @@ function recipeCard(r) {
   const thumb = el("div", { class: "grid-thumb" });
   if (r.coverImage) thumb.appendChild(el("img", { src: r.coverImage, alt: r.name }));
   else thumb.innerHTML = ICONS.chef;
-  if (cats.length) {
+  if (cats.length && !r.exclusive) {
     const label = cats.length > 1 ? cats[0].label + " +" + (cats.length - 1) : cats[0].label;
     thumb.appendChild(el("div", { class: "cat-badge" }, [
       el("span", { class: "cat-dot", style: { background: "var(" + cats[0].color + ")" } }),
       label,
     ]));
+  }
+  if (r.exclusive) {
+    thumb.appendChild(el("div", { class: "exclusive-badge" }, [el("span", { html: ICONS.lock }), "ESCLUSIVA"]));
   }
   const isFav = myFavorites.includes(r.id);
   const favBtn = el("button", {
@@ -662,7 +736,7 @@ function renderBottomTabBar(active) {
 
   const plusBtn = el("button", { class: "tab-item-plus", html: ICONS.plus });
   plusBtn.addEventListener("click", () => {
-    draft = { name: "", categories: [CATEGORIES[0].key], coverImage: null,
+    draft = { name: "", categories: [CATEGORIES[0].key], coverImage: null, exclusive: false,
       ingredients: [""], steps: [{ id: rid(), text: "", hasTimer: false, minutes: "5", seconds: "0", image: null }] };
     route = { screen: "create", selectedId: null };
     render();
@@ -670,7 +744,7 @@ function renderBottomTabBar(active) {
   bar.appendChild(plusBtn);
 
   bar.appendChild(mk(ICONS.heart, "Preferiti", "favorites", () => { route = { screen: "favorites", selectedId: null }; render(); }));
-  bar.appendChild(mk(ICONS.menu, "Menu", "menu", () => { drawerOpen = true; renderDrawer(); }));
+  bar.appendChild(mk(ICONS.person, "Profilo", "profile", () => { route = { screen: "profile", selectedId: null, viewUid: currentUid }; render(); }));
 
   document.body.appendChild(bar);
 }
@@ -721,7 +795,7 @@ function renderHome() {
 
   function renderRecipeList() {
     listContainer.innerHTML = "";
-    let list = filter === "all" ? recipes : recipes.filter((r) => catsOf(r).includes(filter));
+    let list = (filter === "all" ? recipes : recipes.filter((r) => catsOf(r).includes(filter))).filter((r) => !r.exclusive);
     const q = searchQuery.trim().toLowerCase();
     if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
     list = [...list].sort((a, b) => (Array.isArray(b.votedBy) ? b.votedBy.length : 0) - (Array.isArray(a.votedBy) ? a.votedBy.length : 0));
@@ -770,6 +844,20 @@ function renderCreate() {
     catRow.appendChild(chip);
   });
   body.appendChild(catRow);
+
+  const myExclusiveCount = recipes.filter((r) => r.authorUid === currentUid && r.exclusive && r.id !== editingRecipeId).length;
+  const exclusiveBox = el("div", { class: "step-card", style: { marginBottom: "20px" } });
+  const exCheckboxLabel = el("label", { class: "row", style: { gap: "10px", fontSize: "13.5px", cursor: "pointer" } });
+  const exCheckbox = el("input", { type: "checkbox" });
+  exCheckbox.checked = draft.exclusive;
+  const canBeExclusive = draft.exclusive || myExclusiveCount < MAX_EXCLUSIVE;
+  if (!canBeExclusive) exCheckbox.disabled = true;
+  exCheckbox.addEventListener("change", (e) => { draft.exclusive = e.target.checked; });
+  exCheckboxLabel.append(exCheckbox, el("span", { html: ICONS.lock }), " Ricetta esclusiva (visibile solo a chi ti segue)");
+  exclusiveBox.appendChild(exCheckboxLabel);
+  exclusiveBox.appendChild(el("p", { style: { fontSize: "11px", color: canBeExclusive ? "var(--ink-soft)" : "var(--clay)", margin: "6px 0 0" } },
+    canBeExclusive ? "Non comparirà nella pagina principale, solo nel tuo profilo. (" + myExclusiveCount + "/" + MAX_EXCLUSIVE + " usate)" : "Hai raggiunto il limite massimo di " + MAX_EXCLUSIVE + " ricette esclusive."));
+  body.appendChild(exclusiveBox);
 
   body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "8px" } }, "Foto di presentazione"));
   const coverLabel = el("label", { class: "card", style: { width: "100%", height: "140px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginBottom: "22px", overflow: "hidden" } });
@@ -903,6 +991,7 @@ function saveRecipe() {
     const data = {
       name: draft.name.trim(),
       categories: draft.categories,
+      exclusive: !!draft.exclusive,
       coverImage: draft.coverImage || null,
       ingredients: draft.ingredients.map((i) => i.trim()).filter(Boolean),
       steps: draft.steps.map((s) => ({
@@ -1072,7 +1161,7 @@ function renderDetail() {
       editBtn.addEventListener("click", () => {
         editingRecipeId = rec.id;
         draft = {
-          name: rec.name, categories: catsOf(rec), coverImage: rec.coverImage || null,
+          name: rec.name, categories: catsOf(rec), coverImage: rec.coverImage || null, exclusive: !!rec.exclusive,
           ingredients: rec.ingredients && rec.ingredients.length ? [...rec.ingredients] : [""],
           steps: rec.steps.map((s) => ({
             id: s.id, text: s.text, hasTimer: !!s.hasTimer,
@@ -1116,8 +1205,11 @@ function renderDetail() {
     titleBlock.appendChild(catPills);
     titleBlock.appendChild(el("h1", { class: "display", style: { fontSize: "27px", margin: "6px 0 2px" } }, rec.name));
     body.appendChild(titleBlock);
-    body.appendChild(el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", margin: "0 0 12px", textAlign: "center" } },
-      "di " + rec.author + " · " + rec.steps.length + " passaggi"));
+    const authorLine = el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", margin: "0 0 12px", textAlign: "center" } });
+    const authorLink = el("button", { style: { color: "var(--ink-soft)", textDecoration: "underline", fontSize: "inherit" } }, rec.author);
+    authorLink.addEventListener("click", () => { route = { screen: "profile", selectedId: null, viewUid: rec.authorUid }; render(); });
+    authorLine.append("di ", authorLink, " · " + rec.steps.length + " passaggi");
+    body.appendChild(authorLine);
 
     const isFavHere = myFavorites.includes(rec.id);
     const votedByHere = Array.isArray(rec.votedBy) ? rec.votedBy : [];
@@ -1335,6 +1427,130 @@ function storyPostCard(s) {
   return card;
 }
 
+/* ---------------- profile ---------------- */
+function renderProfile() {
+  app.innerHTML = "";
+  const uid = route.viewUid || currentUid;
+  const isMe = uid === currentUid;
+
+  const stickyWrap = el("div", { style: { position: "sticky", top: "0", zIndex: "5", background: "var(--bg)", borderBottom: "1px solid var(--line)", paddingBottom: "10px" } });
+  const top = el("div", { class: "row", style: { justifyContent: "space-between", padding: "22px 20px 4px" } });
+  const leftBtn = isMe
+    ? el("div", { style: { width: "22px" } })
+    : el("button", { class: "icon-btn", html: ICONS.chevronLeft, onclick: () => { route = { screen: "home", selectedId: null }; render(); } });
+  top.append(leftBtn, el("h2", { class: "display", style: { fontSize: "18px" } }, "Profilo"),
+    isMe
+      ? el("button", { class: "icon-btn", html: ICONS.gear, onclick: () => { drawerOpen = true; renderDrawer(); } })
+      : el("div", { style: { width: "22px" } })
+  );
+  stickyWrap.appendChild(top);
+  app.appendChild(stickyWrap);
+
+  const body = el("div", { style: { padding: "10px 20px 90px" } });
+  const loadingP = el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", textAlign: "center", padding: "40px 0" } }, "Caricamento…");
+  body.appendChild(loadingP);
+  app.appendChild(body);
+
+  fetchProfile(uid, (profile) => {
+    body.innerHTML = "";
+
+    const head = el("div", { class: "row", style: { gap: "16px", marginBottom: "16px" } });
+    const avatarWrap = el("div", { class: "profile-avatar-lg" });
+    if (profile.photoURL) avatarWrap.appendChild(el("img", { src: profile.photoURL }));
+    else avatarWrap.innerHTML = ICONS.chef;
+    head.appendChild(avatarWrap);
+
+    const statsRow = el("div", { class: "row", style: { flex: 1 } });
+    const myExclusiveCount = recipes.filter((r) => r.authorUid === uid && r.exclusive).length;
+    const recipesStat = el("div", { class: "profile-stat" }, [el("b", {}, String(myExclusiveCount)), el("span", {}, "Esclusive")]);
+    const followersStat = el("div", { class: "profile-stat" }, [el("b", { id: "followers-count" }, "…"), el("span", {}, "Follower")]);
+    const followingStat = el("div", { class: "profile-stat" }, [el("b", { id: "following-count" }, "…"), el("span", {}, "Seguiti")]);
+    statsRow.append(recipesStat, followersStat, followingStat);
+    head.appendChild(statsRow);
+    body.appendChild(head);
+
+    countFollowers(uid, (n) => { const elx = document.getElementById("followers-count"); if (elx) elx.textContent = n; });
+    countFollowing(uid, (n) => { const elx = document.getElementById("following-count"); if (elx) elx.textContent = n; });
+
+    body.appendChild(el("h3", { class: "display", style: { fontSize: "19px", margin: "0 0 14px" } }, profile.displayName));
+
+    if (isMe) {
+      const editBtn = el("button", { class: "btn-ghost", style: { marginBottom: "22px" } }, "Modifica profilo");
+      editBtn.addEventListener("click", () => { route = { screen: "profile-edit", selectedId: null }; render(); });
+      body.appendChild(editBtn);
+    } else {
+      const following = myFollowing.includes(uid);
+      const followBtn = el("button", { class: following ? "btn-ghost" : "btn-primary", style: { marginBottom: "22px" } }, following ? "Segui già ✓" : "Segui");
+      followBtn.addEventListener("click", () => { toggleFollow(uid); setTimeout(() => renderProfile(), 150); });
+      body.appendChild(followBtn);
+    }
+
+    body.appendChild(el("h3", { class: "display", style: { fontSize: "16px", margin: "0 0 12px" } }, isMe ? "Le tue ricette esclusive" : "Ricette esclusive"));
+
+    const canSee = isMe || myFollowing.includes(uid);
+    if (!canSee) {
+      body.appendChild(el("div", { class: "locked-box" }, [
+        el("div", { html: ICONS.lock, style: { display: "flex", justifyContent: "center", marginBottom: "8px" } }),
+        el("p", { style: { fontSize: "13px" } }, "Segui " + profile.displayName + " per vedere le sue ricette esclusive."),
+      ]));
+    } else {
+      const exclusiveList = recipes.filter((r) => r.authorUid === uid && r.exclusive);
+      if (exclusiveList.length === 0) {
+        body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)" } }, isMe ? "Non hai ancora ricette esclusive. Spuntale come tali in fase di creazione." : "Nessuna ricetta esclusiva ancora."));
+      } else {
+        const grid = el("div", { class: "recipe-grid" });
+        exclusiveList.forEach((r) => grid.appendChild(recipeCard(r)));
+        body.appendChild(grid);
+      }
+    }
+  });
+
+  renderBottomTabBar(isMe ? "profile" : null);
+}
+
+function renderProfileEdit() {
+  app.innerHTML = "";
+  app.appendChild(header({ title: "Modifica profilo", back: true, onBack: () => { route = { screen: "profile", selectedId: null, viewUid: currentUid }; render(); } }));
+  const body = el("div", { style: { padding: "0 20px" } });
+
+  let newPhoto = profileCache[currentUid]?.photoURL || AUTH_PHOTO || null;
+  const photoLabel = el("label", { class: "profile-avatar-lg", style: { cursor: "pointer", margin: "0 auto 18px", display: "flex" } });
+  if (newPhoto) photoLabel.appendChild(el("img", { src: newPhoto }));
+  else photoLabel.innerHTML = ICONS.chef;
+  const photoInput = el("input", { type: "file", accept: "image/*", style: { display: "none" } });
+  photoInput.addEventListener("change", (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    compressImage(file, 400, 0.7).then((dataUrl) => {
+      newPhoto = dataUrl;
+      photoLabel.innerHTML = "";
+      photoLabel.appendChild(el("img", { src: dataUrl }));
+      photoLabel.appendChild(photoInput);
+    });
+  });
+  photoLabel.appendChild(photoInput);
+  body.appendChild(photoLabel);
+
+  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Nome visualizzato"));
+  const nameInput = el("input", { class: "field", value: profileCache[currentUid]?.displayName || AUTH_USER, style: { marginBottom: "20px" } });
+  body.appendChild(nameInput);
+
+  const saveBtn = el("button", { class: "btn-primary" }, "Salva profilo");
+  saveBtn.addEventListener("click", () => {
+    const name = nameInput.value.trim() || AUTH_USER;
+    saveBtn.disabled = true;
+    fdb.collection("profiles").doc(currentUid).set({ displayName: name, photoURL: newPhoto || null }, { merge: true })
+      .then(() => {
+        profileCache[currentUid] = { displayName: name, photoURL: newPhoto || null };
+        AUTH_USER = name;
+        route = { screen: "profile", selectedId: null, viewUid: currentUid };
+        render();
+      })
+      .catch((e) => { console.error(e); banner = { type: "error", text: "Salvataggio profilo non riuscito: " + e.code }; saveBtn.disabled = false; renderProfileEdit(); });
+  });
+  body.appendChild(saveBtn);
+  app.appendChild(body);
+}
+
 /* ---------------- favorites ---------------- */
 function renderFavorites() {
   app.innerHTML = "";
@@ -1440,6 +1656,7 @@ function renderBackup() {
       const data = {
         name: r.name,
         categories: validCats.length ? validCats : [CATEGORIES[0].key],
+        exclusive: !!r.exclusive,
         coverImage: r.coverImage || null,
         ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
         steps: r.steps.map((s) => ({
@@ -1468,6 +1685,8 @@ function render() {
   else if (route.screen === "detail") renderDetail();
   else if (route.screen === "backup") renderBackup();
   else if (route.screen === "favorites") renderFavorites();
+  else if (route.screen === "profile") renderProfile();
+  else if (route.screen === "profile-edit") renderProfileEdit();
   else if (route.screen === "stories") renderStories();
   else if (route.screen === "story-create") renderStoryCreate();
   else renderHome();
