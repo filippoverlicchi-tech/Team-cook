@@ -518,7 +518,10 @@ function countFollowing(uid, cb) {
 }
 
 function subscribeRecipes() {
-  fdb.collection("recipes").where("exclusive", "==", false).limit(300).onSnapshot(
+  const query = AUTH_EMAIL === ADMIN_EMAIL
+    ? fdb.collection("recipes").limit(300)
+    : fdb.collection("recipes").where("exclusive", "==", false).limit(300);
+  query.onSnapshot(
     (snap) => {
       recipes = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt);
       if (route.screen === "home") renderHome();
@@ -1422,17 +1425,17 @@ function storyPostCard(s) {
   const card = el("div", { class: "card", style: { marginBottom: "18px", overflow: "visible" } });
 
   const cardTop = el("div", { class: "row", style: { justifyContent: "space-between", padding: "12px 14px" } });
-  cardTop.append(
-    el("div", { class: "row", style: { gap: "10px" } }, [
-      el("div", { style: { width: "34px", height: "34px", borderRadius: "999px", overflow: "hidden", flexShrink: 0, border: "2px solid var(--saffron)" } }, [
-        el("img", { src: s.image, style: { width: "100%", height: "100%", objectFit: "cover" } }),
-      ]),
-      el("div", {}, [
-        el("p", { style: { fontSize: "13px", fontWeight: 600, margin: 0 } }, s.authorName),
-        el("p", { style: { fontSize: "10.5px", color: "var(--ink-soft)", margin: 0 } }, timeAgo(s.createdAt) + " · sparisce tra 24h"),
-      ]),
-    ])
-  );
+  const authorBtn = el("button", { class: "row", style: { gap: "10px" } }, [
+    el("div", { style: { width: "34px", height: "34px", borderRadius: "999px", overflow: "hidden", flexShrink: 0, border: "2px solid var(--saffron)" } }, [
+      el("img", { src: s.image, style: { width: "100%", height: "100%", objectFit: "cover" } }),
+    ]),
+    el("div", {}, [
+      el("p", { style: { fontSize: "13px", fontWeight: 600, margin: 0 } }, s.authorName),
+      el("p", { style: { fontSize: "10.5px", color: "var(--ink-soft)", margin: 0 } }, timeAgo(s.createdAt) + " · sparisce tra 24h"),
+    ]),
+  ]);
+  authorBtn.addEventListener("click", () => { route = { screen: "profile", selectedId: null, viewUid: s.authorUid }; render(); });
+  cardTop.appendChild(authorBtn);
   if (s.authorUid === currentUid) {
     const delBtn = el("button", { html: ICONS.trash, style: { color: "var(--ink-soft)" } });
     delBtn.addEventListener("click", () => deleteStory(s.id));
@@ -1488,6 +1491,53 @@ function renderProfile() {
       : el("div", { style: { width: "22px" } })
   );
   stickyWrap.appendChild(top);
+
+  if (isMe) {
+    const searchRow = el("div", { style: { padding: "10px 20px 0" } });
+    const searchWrap = el("div", { class: "search-wrap", style: { marginBottom: "0" } });
+    searchWrap.innerHTML = ICONS.search;
+    const userSearchInput = el("input", { class: "search-input", placeholder: "Cerca un utente..." });
+    searchWrap.appendChild(userSearchInput);
+    searchRow.appendChild(searchWrap);
+    const resultsBox = el("div", { style: { marginTop: "8px" } });
+    searchRow.appendChild(resultsBox);
+    stickyWrap.appendChild(searchRow);
+
+    let allProfiles = null;
+    userSearchInput.addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      resultsBox.innerHTML = "";
+      if (!q) return;
+      const renderResults = () => {
+        const matches = allProfiles.filter((p) => p.id !== currentUid && (p.displayName || "").toLowerCase().includes(q)).slice(0, 12);
+        if (matches.length === 0) {
+          resultsBox.appendChild(el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", padding: "8px 2px" } }, "Nessun utente trovato."));
+          return;
+        }
+        matches.forEach((p) => {
+          const row = el("button", { class: "row", style: { gap: "10px", padding: "8px 2px", width: "100%" } });
+          const av = el("div", { style: { width: "32px", height: "32px", borderRadius: "999px", overflow: "hidden", flexShrink: 0, background: "var(--card-dim)", display: "flex", alignItems: "center", justifyContent: "center" } });
+          if (p.photoURL) av.appendChild(el("img", { src: p.photoURL, style: { width: "100%", height: "100%", objectFit: "cover" } }));
+          else av.innerHTML = ICONS.chef;
+          row.append(av, el("span", { style: { fontSize: "13.5px" } }, p.displayName || "Utente"));
+          row.addEventListener("click", () => { route = { screen: "profile", selectedId: null, viewUid: p.id }; render(); });
+          resultsBox.appendChild(row);
+        });
+      };
+      if (allProfiles) { renderResults(); return; }
+      resultsBox.appendChild(el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", padding: "8px 2px" } }, "Cerco…"));
+      fdb.collection("profiles").limit(300).get().then((snap) => {
+        allProfiles = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        resultsBox.innerHTML = "";
+        renderResults();
+      }).catch((err) => {
+        console.error(err);
+        resultsBox.innerHTML = "";
+        resultsBox.appendChild(el("p", { style: { fontSize: "12px", color: "var(--clay)", padding: "8px 2px" } }, "Ricerca non riuscita."));
+      });
+    });
+  }
+
   app.appendChild(stickyWrap);
 
   const body = el("div", { style: { padding: "10px 20px 90px" } });
@@ -1530,7 +1580,7 @@ function renderProfile() {
 
     body.appendChild(el("h3", { class: "display", style: { fontSize: "16px", margin: "0 0 12px" } }, isMe ? "Le tue ricette esclusive" : "Ricette esclusive"));
 
-    const canSee = isMe || myFollowing.includes(uid);
+    const canSee = isMe || myFollowing.includes(uid) || AUTH_EMAIL === ADMIN_EMAIL;
     if (!canSee) {
       body.appendChild(el("div", { class: "locked-box" }, [
         el("div", { html: ICONS.lock, style: { display: "flex", justifyContent: "center", marginBottom: "8px" } }),
