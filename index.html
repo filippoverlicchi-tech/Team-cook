@@ -354,6 +354,8 @@ let storyViewerIndex = null;
 const STORY_TTL = 24 * 60 * 60 * 1000;
 let myFollowing = [];
 let profileCache = {};
+let myExclusiveRecipes = [];
+let exclusiveDocCache = {};
 const MAX_EXCLUSIVE = 40;
 let route = { screen: "login", selectedId: null };
 let filter = "all";
@@ -382,6 +384,7 @@ function initFirebase() {
       subscribeStories();
       subscribeFollowing();
       ensureProfileDoc();
+      subscribeMyExclusive();
       render();
     } else {
       currentUid = null;
@@ -391,6 +394,8 @@ function initFirebase() {
       myFavorites = [];
       myFollowing = [];
       profileCache = {};
+      myExclusiveRecipes = [];
+      exclusiveDocCache = {};
       route = { screen: "login", selectedId: null };
       render();
     }
@@ -513,13 +518,13 @@ function countFollowing(uid, cb) {
 }
 
 function subscribeRecipes() {
-  fdb.collection("recipes").orderBy("createdAt", "desc").limit(200).onSnapshot(
+  fdb.collection("recipes").where("exclusive", "==", false).limit(300).onSnapshot(
     (snap) => {
-      recipes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      recipes = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt);
       if (route.screen === "home") renderHome();
       if (route.screen === "favorites") renderFavorites();
       if (route.screen === "detail") {
-        const still = recipes.find((r) => r.id === route.selectedId);
+        const still = getRecipeById(route.selectedId);
         if (!still) { route = { screen: "home", selectedId: null }; render(); }
         else renderDetail();
       }
@@ -530,6 +535,33 @@ function subscribeRecipes() {
       if (route.screen === "home") renderHome();
     }
   );
+}
+
+function subscribeMyExclusive() {
+  fdb.collection("recipes").where("authorUid", "==", currentUid).where("exclusive", "==", true).onSnapshot(
+    (snap) => {
+      myExclusiveRecipes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      myExclusiveRecipes.forEach((r) => { exclusiveDocCache[r.id] = r; });
+      if (route.screen === "profile" && (route.viewUid || currentUid) === currentUid) renderProfile();
+      if (route.screen === "create") updateSaveState();
+      if (route.screen === "detail" && exclusiveDocCache[route.selectedId]) renderDetail();
+    },
+    (err) => console.error("my-exclusive onSnapshot error", err)
+  );
+}
+
+function fetchExclusiveFor(uid, cb) {
+  fdb.collection("recipes").where("authorUid", "==", uid).where("exclusive", "==", true).get()
+    .then((snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      list.forEach((r) => { exclusiveDocCache[r.id] = r; });
+      cb(list);
+    })
+    .catch((e) => { console.error(e); cb([]); });
+}
+
+function getRecipeById(id) {
+  return recipes.find((r) => r.id === id) || exclusiveDocCache[id] || null;
 }
 
 /* ---------------- login ---------------- */
@@ -845,7 +877,7 @@ function renderCreate() {
   });
   body.appendChild(catRow);
 
-  const myExclusiveCount = recipes.filter((r) => r.authorUid === currentUid && r.exclusive && r.id !== editingRecipeId).length;
+  const myExclusiveCount = myExclusiveRecipes.filter((r) => r.id !== editingRecipeId).length;
   const exclusiveBox = el("div", { class: "step-card", style: { marginBottom: "20px" } });
   const exCheckboxLabel = el("label", { class: "row", style: { gap: "10px", fontSize: "13.5px", cursor: "pointer" } });
   const exCheckbox = el("input", { type: "checkbox" });
@@ -986,7 +1018,7 @@ function saveRecipe() {
   if (!draft.name.trim() || !draft.categories.length || !draft.steps.every((s) => s.text.trim())) return;
   if (!currentUid) { banner = { type: "error", text: "Connessione al database non pronta, riprova tra un istante." }; renderCreate(); return; }
   const isEditing = !!editingRecipeId;
-  const original = isEditing ? recipes.find((r) => r.id === editingRecipeId) : null;
+  const original = isEditing ? getRecipeById(editingRecipeId) : null;
   const finish = () => {
     const data = {
       name: draft.name.trim(),
@@ -1080,7 +1112,7 @@ function startTicking() {
   if (tickInterval) return;
   tickInterval = setInterval(() => {
     if (route.screen !== "detail") return;
-    const rec = recipes.find((r) => r.id === route.selectedId);
+    const rec = getRecipeById(route.selectedId);
     if (!rec) return;
     rec.steps.forEach((step) => {
       const t = timers[step.id];
@@ -1121,7 +1153,7 @@ function goToStep(newStep) {
 function renderDetail() {
   startTicking();
   app.innerHTML = "";
-  const rec = recipes.find((r) => r.id === route.selectedId);
+  const rec = getRecipeById(route.selectedId);
   if (!rec) {
     app.appendChild(el("div", { style: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 30px", textAlign: "center" } }, [
       el("p", { style: { fontSize: "13px", marginBottom: "16px" } }, "Ricetta non trovata."),
@@ -1189,6 +1221,7 @@ function renderDetail() {
         clearTimeout(confirmTimeout);
         fdb.collection("recipes").doc(rec.id).delete().catch((e) => console.error(e));
         recipes = recipes.filter((r) => r.id !== rec.id);
+        delete exclusiveDocCache[rec.id];
         exitToHome();
       });
       cover.appendChild(del);
@@ -1311,7 +1344,7 @@ function renderDetail() {
 /* ---------------- story create ---------------- */
 function renderStoryCreate() {
   app.innerHTML = "";
-  const rec = recipes.find((r) => r.id === route.selectedId);
+  const rec = getRecipeById(route.selectedId);
   const backTo = () => { if (rec) { timers = {}; route = { screen: "detail", selectedId: rec.id, step: rec.steps.length }; } else { route = { screen: "home", selectedId: null }; } render(); };
   app.appendChild(header({ title: "Nuova storia", back: true, onBack: backTo }));
   const body = el("div", { style: { padding: "0 20px" } });
@@ -1428,6 +1461,17 @@ function storyPostCard(s) {
 }
 
 /* ---------------- profile ---------------- */
+function renderExclusiveGrid(body, list, isMine) {
+  if (list.length === 0) {
+    body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)" } },
+      isMine ? "Non hai ancora ricette esclusive. Spuntale come tali in fase di creazione." : "Nessuna ricetta esclusiva ancora."));
+  } else {
+    const grid = el("div", { class: "recipe-grid" });
+    list.forEach((r) => grid.appendChild(recipeCard(r)));
+    body.appendChild(grid);
+  }
+}
+
 function renderProfile() {
   app.innerHTML = "";
   const uid = route.viewUid || currentUid;
@@ -1461,8 +1505,7 @@ function renderProfile() {
     head.appendChild(avatarWrap);
 
     const statsRow = el("div", { class: "row", style: { flex: 1 } });
-    const myExclusiveCount = recipes.filter((r) => r.authorUid === uid && r.exclusive).length;
-    const recipesStat = el("div", { class: "profile-stat" }, [el("b", {}, String(myExclusiveCount)), el("span", {}, "Esclusive")]);
+    const recipesStat = el("div", { class: "profile-stat" }, [el("b", { id: "exclusive-count" }, isMe ? String(myExclusiveRecipes.length) : "…"), el("span", {}, "Esclusive")]);
     const followersStat = el("div", { class: "profile-stat" }, [el("b", { id: "followers-count" }, "…"), el("span", {}, "Follower")]);
     const followingStat = el("div", { class: "profile-stat" }, [el("b", { id: "following-count" }, "…"), el("span", {}, "Seguiti")]);
     statsRow.append(recipesStat, followersStat, followingStat);
@@ -1493,15 +1536,17 @@ function renderProfile() {
         el("div", { html: ICONS.lock, style: { display: "flex", justifyContent: "center", marginBottom: "8px" } }),
         el("p", { style: { fontSize: "13px" } }, "Segui " + profile.displayName + " per vedere le sue ricette esclusive."),
       ]));
+    } else if (isMe) {
+      renderExclusiveGrid(body, myExclusiveRecipes, true);
     } else {
-      const exclusiveList = recipes.filter((r) => r.authorUid === uid && r.exclusive);
-      if (exclusiveList.length === 0) {
-        body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)" } }, isMe ? "Non hai ancora ricette esclusive. Spuntale come tali in fase di creazione." : "Nessuna ricetta esclusiva ancora."));
-      } else {
-        const grid = el("div", { class: "recipe-grid" });
-        exclusiveList.forEach((r) => grid.appendChild(recipeCard(r)));
-        body.appendChild(grid);
-      }
+      const loadingEx = el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)" } }, "Caricamento…");
+      body.appendChild(loadingEx);
+      fetchExclusiveFor(uid, (list) => {
+        loadingEx.remove();
+        const countEl = document.getElementById("exclusive-count");
+        if (countEl) countEl.textContent = list.length;
+        renderExclusiveGrid(body, list, false);
+      });
     }
   });
 
