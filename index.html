@@ -634,6 +634,7 @@ function renderCurrent() {
   else if (route.screen === "favorites") renderFavorites();
   else if (route.screen === "profile") renderProfile();
   else if (route.screen === "profile-edit") renderProfileEdit();
+  else if (route.screen === "follow-list") renderFollowList();
   else if (route.screen === "stories") renderStories();
   else if (route.screen === "story-create") renderStoryCreate();
   else renderLogin();
@@ -1464,6 +1465,50 @@ function storyPostCard(s) {
 }
 
 /* ---------------- profile ---------------- */
+function renderFollowList() {
+  app.innerHTML = "";
+  const uid = route.viewUid;
+  const mode = route.listMode;
+  app.appendChild(header({
+    title: mode === "followers" ? "Follower" : "Seguiti",
+    back: true,
+    onBack: () => { route = { screen: "profile", selectedId: null, viewUid: uid }; render(); },
+  }));
+  const body = el("div", { style: { padding: "0 20px 40px" } });
+  const loadingP = el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", textAlign: "center", padding: "40px 0" } }, "Caricamento…");
+  body.appendChild(loadingP);
+  app.appendChild(body);
+
+  const field = mode === "followers" ? "targetUid" : "followerUid";
+  const pickField = mode === "followers" ? "followerUid" : "targetUid";
+  fdb.collection("follows").where(field, "==", uid).get().then((snap) => {
+    body.innerHTML = "";
+    const ids = snap.docs.map((d) => d.data()[pickField]);
+    if (ids.length === 0) {
+      body.appendChild(el("p", { style: { fontSize: "13px", color: "var(--ink-soft)", textAlign: "center", padding: "40px 0" } },
+        mode === "followers" ? "Nessun follower ancora." : "Non segui ancora nessuno."));
+      return;
+    }
+    ids.forEach((otherUid) => {
+      const row = el("button", { class: "row", style: { gap: "12px", padding: "10px 0", width: "100%", borderBottom: "1px solid var(--line)" } });
+      const av = el("div", { style: { width: "38px", height: "38px", borderRadius: "999px", overflow: "hidden", flexShrink: 0, background: "var(--card-dim)", display: "flex", alignItems: "center", justifyContent: "center" } });
+      av.innerHTML = ICONS.chef;
+      const nameEl = el("span", { style: { fontSize: "14px" } }, "…");
+      row.append(av, nameEl);
+      row.addEventListener("click", () => { route = { screen: "profile", selectedId: null, viewUid: otherUid }; render(); });
+      body.appendChild(row);
+      fetchProfile(otherUid, (p) => {
+        nameEl.textContent = p.displayName;
+        if (p.photoURL) { av.innerHTML = ""; av.appendChild(el("img", { src: p.photoURL, style: { width: "100%", height: "100%", objectFit: "cover" } })); }
+      });
+    });
+  }).catch((e) => {
+    console.error(e);
+    body.innerHTML = "";
+    body.appendChild(el("p", { style: { fontSize: "13px", color: "var(--clay)", textAlign: "center", padding: "40px 0" } }, "Caricamento non riuscito: " + e.code));
+  });
+}
+
 function renderExclusiveGrid(body, list, isMine) {
   if (list.length === 0) {
     body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)" } },
@@ -1556,8 +1601,10 @@ function renderProfile() {
 
     const statsRow = el("div", { class: "row", style: { flex: 1 } });
     const recipesStat = el("div", { class: "profile-stat" }, [el("b", { id: "exclusive-count" }, isMe ? String(myExclusiveRecipes.length) : "…"), el("span", {}, "Esclusive")]);
-    const followersStat = el("div", { class: "profile-stat" }, [el("b", { id: "followers-count" }, "…"), el("span", {}, "Follower")]);
-    const followingStat = el("div", { class: "profile-stat" }, [el("b", { id: "following-count" }, "…"), el("span", {}, "Seguiti")]);
+    const followersStat = el("button", { class: "profile-stat" }, [el("b", { id: "followers-count" }, "…"), el("span", {}, "Follower")]);
+    followersStat.addEventListener("click", () => { route = { screen: "follow-list", selectedId: null, viewUid: uid, listMode: "followers" }; render(); });
+    const followingStat = el("button", { class: "profile-stat" }, [el("b", { id: "following-count" }, "…"), el("span", {}, "Seguiti")]);
+    followingStat.addEventListener("click", () => { route = { screen: "follow-list", selectedId: null, viewUid: uid, listMode: "following" }; render(); });
     statsRow.append(recipesStat, followersStat, followingStat);
     head.appendChild(statsRow);
     body.appendChild(head);
@@ -1808,6 +1855,7 @@ function render() {
   else if (route.screen === "favorites") renderFavorites();
   else if (route.screen === "profile") renderProfile();
   else if (route.screen === "profile-edit") renderProfileEdit();
+  else if (route.screen === "follow-list") renderFollowList();
   else if (route.screen === "stories") renderStories();
   else if (route.screen === "story-create") renderStoryCreate();
   else renderHome();
