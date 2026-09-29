@@ -219,6 +219,7 @@ const ICONS = {
   back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
   alarm: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="M22 6 19 3"/></svg>',
   search: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  filter: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>',
   edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>',
   database: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
   upload: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
@@ -236,6 +237,30 @@ const ICONS = {
   lock: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
   gear: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>',
 };
+
+const MASTER_INGREDIENTS = [
+  "Aceto balsamico","Aceto di mele","Aceto di vino","Acqua","Aglio","Alici","Amido di mais","Ananas","Anice stellato",
+  "Arancia","Arachidi","Aringa","Asparagi","Avocado","Baccalà","Basilico","Besciamella","Bietole","Biscotti secchi",
+  "Borlotti (fagioli)","Brodo di carne","Brodo vegetale","Broccoli","Burrata","Burro","Cacao amaro","Cannella","Capperi",
+  "Cardamomo","Carote","Carne macinata","Cavolfiore","Cavolo cappuccio","Cavolo cinese","Ceci","Cetriolo","Cheddar",
+  "Chiodi di garofano","Cioccolato fondente","Cipolla","Cipolla rossa","Cipollotto","Coriandolo","Cocco (latte)",
+  "Colla di pesce","Coniglio","Cozze","Crema di nocciole","Cumino","Curry (spezie)","Erba cipollina","Fagioli neri",
+  "Farina 00","Farina di mais","Farina di riso","Fecola di patate","Fegato","Feta","Finocchi","Formaggio filante",
+  "Formaggio spalmabile","Fragole","Frutti di bosco","Funghi champignon","Funghi porcini","Gamberi","Gorgonzola",
+  "Grana Padano","Groviera","Guanciale","Latte","Latticello","Lattuga","Lemongrass","Lenticchie","Lievito di birra",
+  "Lievito per dolci","Lime","Limone","Maggiorana","Maiale (carne)","Mais","Mandorle","Manzo (carne)","Margarina",
+  "Mascarpone","Melanzane","Melone","Menta","Merluzzo","Miele","Mirin","Mirtilli","Mozzarella","Nocciole","Noce moscata",
+  "Noci","Olio di semi","Olio extravergine d'oliva","Olive nere","Olive verdi","Origano","Ostriche","Paprika",
+  "Paprika affumicata","Parmigiano","Passata di pomodoro","Pancetta","Pane raffermo","Panna acida","Panna fresca",
+  "Pangrattato","Patate","Pecorino","Peperoncino","Peperoni","Pepe nero","Pere","Pesce spada","Pesto","Petto di pollo",
+  "Piselli","Pinoli","Pistacchi","Polpo","Pomodori","Pomodori secchi","Pomodorini","Porri","Prezzemolo","Prosciutto cotto",
+  "Prosciutto crudo","Provola","Rafano","Ravanelli","Riso","Riso basmati","Riso Carnaroli","Ricotta","Ricotta salata",
+  "Robiola","Rosmarino","Rucola","Salame","Salmone","Salsa di soia","Salsa Worcestershire","Salsiccia","Salvia","Scalogno",
+  "Sedano","Semi di sesamo","Semi di zucca","Senape","Speck","Spinaci","Spezie miste","Stracchino","Tahina","Té matcha",
+  "Timo","Tonno","Tuorlo d'uovo","Uova","Uva","Uvetta","Vaniglia","Verza","Vino bianco","Vino rosso","Vongole",
+  "Wurstel","Yogurt bianco","Yogurt greco","Zafferano","Zenzero","Zucca","Zucchero","Zucchero a velo","Zucchero di canna",
+  "Zucchine",
+];
 
 const CATEGORIES = [
   { key: "antipasti", label: "Antipasti", color: "--herb" },
@@ -366,6 +391,7 @@ let filter = "all";
 let drawerOpen = false;
 let drawerCatsExpanded = false;
 let searchQuery = "";
+let ingredientFilter = [];
 let banner = null;
 let draft = null;
 let editingRecipeId = null;
@@ -688,6 +714,67 @@ function recipeCard(r) {
   return card;
 }
 
+function openIngredientFilterSheet() {
+  const existing = document.getElementById("ing-filter-sheet");
+  if (existing) existing.remove();
+
+  let tempSelection = [...ingredientFilter];
+  const backdrop = el("div", { class: "drawer-backdrop", id: "ing-filter-sheet" });
+  const panel = el("div", {
+    style: { position: "fixed", left: "50%", bottom: "0", transform: "translateX(-50%)", width: "100%", maxWidth: "480px", maxHeight: "75vh", background: "var(--card)", borderRadius: "18px 18px 0 0", zIndex: "41", display: "flex", flexDirection: "column", boxShadow: "0 -10px 30px rgba(0,0,0,.2)" },
+    onclick: (e) => e.stopPropagation(),
+  });
+  backdrop.addEventListener("click", () => backdrop.remove());
+
+  panel.appendChild(el("div", { style: { padding: "18px 20px 10px" } }, [
+    el("h3", { class: "display", style: { fontSize: "17px", margin: "0 0 12px" } }, "Filtra per ingredienti"),
+  ]));
+
+  const searchWrap = el("div", { class: "search-wrap", style: { margin: "0 20px 10px" } });
+  searchWrap.innerHTML = ICONS.search;
+  const q = el("input", { class: "search-input", placeholder: "Cerca ingrediente..." });
+  searchWrap.appendChild(q);
+  panel.appendChild(searchWrap);
+
+  const list = el("div", { style: { overflowY: "auto", flex: "1", padding: "0 20px" } });
+  panel.appendChild(list);
+
+  function renderList() {
+    list.innerHTML = "";
+    const query = q.value.trim().toLowerCase();
+    const items = MASTER_INGREDIENTS.filter((n) => !query || n.toLowerCase().includes(query));
+    if (items.length === 0) {
+      list.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", padding: "10px 0" } }, "Nessun ingrediente trovato."));
+      return;
+    }
+    items.forEach((name) => {
+      const active = tempSelection.includes(name);
+      const row = el("button", { class: "row", style: { justifyContent: "space-between", width: "100%", padding: "10px 2px", borderBottom: "1px solid var(--line)" } }, [
+        el("span", { style: { fontSize: "13.5px", color: active ? "var(--saffron)" : "var(--ink)", fontWeight: active ? "600" : "400" } }, name),
+        active ? el("span", { html: ICONS.check, style: { color: "var(--saffron)" } }) : el("span", {}),
+      ]);
+      row.addEventListener("click", () => {
+        tempSelection = active ? tempSelection.filter((n) => n !== name) : [...tempSelection, name];
+        renderList();
+      });
+      list.appendChild(row);
+    });
+  }
+  q.addEventListener("input", renderList);
+  renderList();
+
+  const footer = el("div", { style: { padding: "12px 20px calc(env(safe-area-inset-bottom,0px) + 16px)", display: "flex", gap: "10px" } });
+  const clearBtn = el("button", { class: "btn-ghost" }, "Azzera");
+  clearBtn.addEventListener("click", () => { tempSelection = []; renderList(); });
+  const applyBtn = el("button", { class: "btn-primary" }, "Applica");
+  applyBtn.addEventListener("click", () => { ingredientFilter = tempSelection; backdrop.remove(); renderHome(); });
+  footer.append(clearBtn, applyBtn);
+  panel.appendChild(footer);
+
+  backdrop.appendChild(panel);
+  document.body.appendChild(backdrop);
+}
+
 function renderDrawer() {
   const existing = document.getElementById("drawer-backdrop");
   if (existing) existing.remove();
@@ -777,7 +864,7 @@ function renderBottomTabBar(active) {
   const plusBtn = el("button", { class: "tab-item-plus", html: ICONS.plus });
   plusBtn.addEventListener("click", () => {
     draft = { name: "", categories: [CATEGORIES[0].key], coverImage: null, exclusive: false,
-      ingredients: [""], steps: [{ id: rid(), text: "", hasTimer: false, minutes: "5", seconds: "0", image: null }] };
+      ingredients: [{ name: "", note: "" }], steps: [{ id: rid(), text: "", hasTimer: false, minutes: "5", seconds: "0", image: null }] };
     route = { screen: "create", selectedId: null };
     render();
   });
@@ -806,22 +893,36 @@ function renderHome() {
   stickyWrap.appendChild(topBar);
 
   const searchRow = el("div", { style: { padding: "10px 20px 0" } });
-  const searchWrap = el("div", { class: "search-wrap", style: { marginBottom: "0" } });
+  const searchFlex = el("div", { class: "row", style: { gap: "8px" } });
+  const searchWrap = el("div", { class: "search-wrap", style: { marginBottom: "0", flex: "1" } });
   searchWrap.innerHTML = ICONS.search;
   const searchInput = el("input", { class: "search-input", placeholder: "Cerca una ricetta...", value: searchQuery });
   searchWrap.appendChild(searchInput);
-  searchRow.appendChild(searchWrap);
+  const ingFilterBtn = el("button", {
+    class: "icon-btn", html: ICONS.filter,
+    style: { background: ingredientFilter.length ? "var(--saffron)" : "var(--card)", color: ingredientFilter.length ? "var(--chalk-on-accent)" : "var(--ink)", border: "1px solid var(--line)", flexShrink: 0 },
+  });
+  ingFilterBtn.addEventListener("click", () => openIngredientFilterSheet());
+  searchFlex.append(searchWrap, ingFilterBtn);
+  searchRow.appendChild(searchFlex);
 
   if (filter !== "all") {
     const activeCat = CATEGORIES.find((c) => c.key === filter);
     if (activeCat) {
-      const pill = el("button", { class: "active-filter-pill", style: { background: "var(" + activeCat.color + ")", color: "var(--chalk-on-accent)", marginTop: "10px", marginBottom: "0" } }, [
+      const pill = el("button", { class: "active-filter-pill", style: { background: "var(" + activeCat.color + ")", color: "var(--chalk-on-accent)", marginTop: "10px", marginBottom: "0", marginRight: "6px" } }, [
         activeCat.label, el("span", { html: ICONS.x, style: { display: "flex" } }),
       ]);
       pill.addEventListener("click", () => { filter = "all"; renderHome(); });
       searchRow.appendChild(pill);
     }
   }
+  ingredientFilter.forEach((name) => {
+    const pill = el("button", { class: "active-filter-pill", style: { background: "var(--herb)", color: "#fff", marginTop: "10px", marginBottom: "0", marginRight: "6px" } }, [
+      name, el("span", { html: ICONS.x, style: { display: "flex" } }),
+    ]);
+    pill.addEventListener("click", () => { ingredientFilter = ingredientFilter.filter((n) => n !== name); renderHome(); });
+    searchRow.appendChild(pill);
+  });
   stickyWrap.appendChild(searchRow);
   app.appendChild(stickyWrap);
 
@@ -838,6 +939,10 @@ function renderHome() {
     let list = (filter === "all" ? recipes : recipes.filter((r) => catsOf(r).includes(filter))).filter((r) => !r.exclusive);
     const q = searchQuery.trim().toLowerCase();
     if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
+    if (ingredientFilter.length) {
+      const wanted = ingredientFilter.map((n) => n.toLowerCase());
+      list = list.filter((r) => wanted.every((w) => (r.ingredientNames || []).includes(w)));
+    }
     list = [...list].sort((a, b) => (Array.isArray(b.votedBy) ? b.votedBy.length : 0) - (Array.isArray(a.votedBy) ? a.votedBy.length : 0));
     if (list.length === 0) {
       listContainer.appendChild(el("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--ink-soft)" } }, [
@@ -943,20 +1048,51 @@ function renderCreate() {
 
 function renderIngredients(container) {
   container.innerHTML = "";
-  draft.ingredients.forEach((val, idx) => {
-    const row = el("div", { class: "row", style: { gap: "8px", marginBottom: "8px" } });
-    const input = el("input", { class: "field", placeholder: "Es. 400g di pomodori pelati", value: val });
-    input.addEventListener("input", (e) => { draft.ingredients[idx] = e.target.value; });
-    row.appendChild(input);
+  draft.ingredients.forEach((item, idx) => {
+    const row = el("div", { style: { marginBottom: "10px" } });
+    const inputRow = el("div", { class: "row", style: { gap: "8px" } });
+
+    const nameWrap = el("div", { style: { position: "relative", flex: 1 } });
+    const nameInput = el("input", { class: "field", placeholder: "Scrivi per cercare...", value: item.name });
+    const suggestBox = el("div", { style: { position: "absolute", left: 0, right: 0, top: "calc(100% + 4px)", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "10px", boxShadow: "0 8px 20px rgba(0,0,0,.12)", zIndex: "6", maxHeight: "180px", overflowY: "auto", display: "none" } });
+    const closeSuggest = () => { suggestBox.style.display = "none"; suggestBox.innerHTML = ""; };
+    nameInput.addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      item.name = e.target.value;
+      if (!q) { closeSuggest(); return; }
+      const matches = MASTER_INGREDIENTS.filter((n) => n.toLowerCase().includes(q)).slice(0, 8);
+      if (matches.length === 0) { closeSuggest(); return; }
+      suggestBox.innerHTML = "";
+      matches.forEach((m) => {
+        const opt = el("button", { style: { display: "block", width: "100%", textAlign: "left", padding: "9px 12px", fontSize: "13.5px", color: "var(--ink)" } }, m);
+        opt.addEventListener("mousedown", (ev) => ev.preventDefault());
+        opt.addEventListener("click", () => { item.name = m; nameInput.value = m; closeSuggest(); });
+        suggestBox.appendChild(opt);
+      });
+      suggestBox.style.display = "block";
+    });
+    nameInput.addEventListener("blur", () => {
+      setTimeout(() => {
+        closeSuggest();
+        if (item.name && !MASTER_INGREDIENTS.includes(item.name)) { item.name = ""; nameInput.value = ""; }
+      }, 120);
+    });
+    nameWrap.append(nameInput, suggestBox);
+
+    const noteInput = el("input", { class: "field", placeholder: "Quantità (facoltativa)", value: item.note || "", style: { maxWidth: "130px" } });
+    noteInput.addEventListener("input", (e) => { item.note = e.target.value; });
+
+    inputRow.append(nameWrap, noteInput);
     if (draft.ingredients.length > 1) {
       const rm = el("button", { class: "icon-btn", html: ICONS.trash, style: { color: "var(--ink-soft)" } });
       rm.addEventListener("click", () => { draft.ingredients.splice(idx, 1); renderIngredients(container); });
-      row.appendChild(rm);
+      inputRow.appendChild(rm);
     }
+    row.appendChild(inputRow);
     container.appendChild(row);
   });
   const addBtn = el("button", { class: "btn-ghost" }, [el("span", { html: ICONS.plus }), " Aggiungi ingrediente"]);
-  addBtn.addEventListener("click", () => { draft.ingredients.push(""); renderIngredients(container); });
+  addBtn.addEventListener("click", () => { draft.ingredients.push({ name: "", note: "" }); renderIngredients(container); });
   container.appendChild(addBtn);
 }
 
@@ -1033,7 +1169,8 @@ function saveRecipe() {
       categories: draft.categories,
       exclusive: !!draft.exclusive,
       coverImage: draft.coverImage || null,
-      ingredients: draft.ingredients.map((i) => i.trim()).filter(Boolean),
+      ingredients: draft.ingredients.filter((i) => i.name.trim() || (i.note || "").trim()).map((i) => ({ name: i.name.trim(), note: (i.note || "").trim() })),
+      ingredientNames: draft.ingredients.filter((i) => i.name.trim()).map((i) => i.name.trim().toLowerCase()),
       steps: draft.steps.map((s) => ({
         id: s.id, text: s.text.trim(), hasTimer: s.hasTimer,
         minutes: parseInt(s.minutes, 10) || 0, seconds: parseInt(s.seconds, 10) || 0,
@@ -1202,7 +1339,9 @@ function renderDetail() {
         editingRecipeId = rec.id;
         draft = {
           name: rec.name, categories: catsOf(rec), coverImage: rec.coverImage || null, exclusive: !!rec.exclusive,
-          ingredients: rec.ingredients && rec.ingredients.length ? [...rec.ingredients] : [""],
+          ingredients: rec.ingredients && rec.ingredients.length
+            ? rec.ingredients.map((i) => typeof i === "string" ? { name: "", note: i } : { name: i.name || "", note: i.note || "" })
+            : [{ name: "", note: "" }],
           steps: rec.steps.map((s) => ({
             id: s.id, text: s.text, hasTimer: !!s.hasTimer,
             minutes: String(s.minutes || 0), seconds: String(s.seconds || 0), image: s.image || null,
@@ -1272,9 +1411,10 @@ function renderDetail() {
       box.appendChild(el("h3", { class: "display", style: { fontSize: "15px", margin: "0 0 8px" } }, "Ingredienti"));
       const ul = el("ul", { style: { margin: 0, padding: 0, listStyle: "none" } });
       rec.ingredients.forEach((ing) => {
+        const label = typeof ing === "string" ? ing : [ing.note, ing.name].filter(Boolean).join(" · ") || ing.name;
         ul.appendChild(el("li", { class: "row", style: { gap: "8px", fontSize: "13.5px", padding: "3px 0" } }, [
           el("span", { style: { width: "4px", height: "4px", borderRadius: "999px", background: "var(--herb)", flexShrink: 0 } }),
-          ing,
+          label,
         ]));
       });
       box.appendChild(ul);
