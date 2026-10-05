@@ -354,6 +354,53 @@ const MASTER_INGREDIENTS = [
   "Zucchero di cocco","Zucchero muscovado","Zucchina","Zucchine","Zucchine trombetta",
 ];
 
+const KCAL_PER_100G = {
+  "Acciughe":131,"Aceto":19,"Aceto balsamico":88,"Aceto di mele":21,"Aceto di vino":19,"Acqua":0,"Aglio":149,
+  "Agnello":294,"Albicocca":48,"Albume d'uovo":52,"Alici":131,"Amido di mais":355,"Anacardi":553,"Ananas":50,
+  "Anatra":337,"Arachidi":567,"Arancia":47,"Aringa":158,"Asparagi":20,"Avena":389,"Avocado":160,"Baccalà":80,
+  "Banana":89,"Basilico":23,"Besciamella":120,"Bietole":19,"Biscotti secchi":430,"Borlotti (fagioli)":127,
+  "Broccoli":34,"Brodo":10,"Brodo di carne":10,"Brodo vegetale":8,"Bulgur":342,"Burrata":330,"Burro":717,
+  "Cacao amaro":228,"Cannella":247,"Capperi":23,"Cardamomo":311,"Carne macinata":250,"Carota":41,"Carote":41,
+  "Castagne":213,"Cavolfiore":25,"Cavolo":25,"Cavolo cappuccio":25,"Cavolo cinese":13,"Cavolo nero":32,"Ceci":164,
+  "Cetriolo":15,"Cheddar":403,"Chiodi di garofano":274,"Ciliegia":63,"Cioccolato al latte":535,
+  "Cioccolato bianco":539,"Cioccolato fondente":546,"Cipolla":40,"Cipolla rossa":40,"Cipollotto":32,"Clementina":47,
+  "Cocco (latte)":230,"Cocomero":30,"Colla di pesce":335,"Coniglio":173,"Coriandolo":23,"Cous cous":112,"Cozze":86,
+  "Crema di nocciole":539,"Cumino":375,"Curry (spezie)":325,"Dattero":282,"Edamame":122,"Erba cipollina":30,
+  "Fagioli":127,"Fagioli cannellini":130,"Fagioli neri":132,"Fagioli rossi":127,"Farina":340,"Farina 00":340,
+  "Farina di mais":365,"Farina di riso":366,"Farina integrale":340,"Farro":340,"Fecola di patate":357,"Fegato":135,
+  "Feta":264,"Fico":74,"Finocchi":31,"Fiocchi d'avena":389,"Formaggio":350,"Formaggio filante":300,
+  "Formaggio spalmabile":245,"Fragole":32,"Frutti di bosco":43,"Funghi":25,"Funghi champignon":22,"Funghi porcini":34,
+  "Fusilli":158,"Gamberetti":85,"Gamberi":85,"Gamberoni":90,"Gorgonzola":330,"Grana Padano":392,"Groviera":413,
+  "Guacamole":160,"Guanciale":430,"Guanciale stagionato":430,"Hummus":166,"Ketchup":101,"Kiwi":61,"Latte":42,
+  "Latte scremato":35,"Latticello":40,"Lattuga":15,"Lemongrass":99,"Lenticchie":116,"Lievito di birra":105,
+  "Lievito per dolci":280,"Lime":30,"Limone":29,"Maggiorana":271,"Maiale (carne)":242,"Maiale (filetto)":143,
+  "Maiale (lonza)":143,"Maiale (macinato)":263,"Maionese":680,"Mais":86,"Maizena":355,"Mandarino":53,"Mandorle":579,
+  "Mango":60,"Manzo (bistecca)":271,"Manzo (carne)":250,"Manzo (filetto)":201,"Manzo (macinato)":250,"Margarina":717,
+  "Mascarpone":450,"Mascarpone light":280,"Mela":52,"Melanzane":25,"Melograno":83,"Melone":34,"Menta":44,
+  "Merluzzo":82,"Miele":304,"Mirin":225,"Mirtilli":57,"Mozzarella":280,"Mozzarella di bufala":288,"Nasello":82,
+  "Nocciole":628,"Noce moscata":525,"Noci":654,"Noci pecan":691,"Noodles":138,"Nutella":539,"Olio d'oliva":884,
+  "Olio di arachidi":884,"Olio di cocco":862,"Olio di girasole":884,"Olio di semi":884,"Olio di sesamo":884,
+  "Olio extravergine d'oliva":884,"Olive":130,"Olive nere":115,"Olive verdi":145,"Origano":265,"Ostriche":68,
+  "Pancetta":541,"Pancetta affumicata":541,"Pane":265,"Pane raffermo":265,"Pangrattato":395,"Panna":337,
+  "Panna acida":198,"Panna fresca":337,"Papaya":43,"Paprika":282,"Paprika affumicata":282,"Parmigiano":392,
+  "Passata":27,"Passata di pomodoro":27,"Pasta all'uovo":280,"Pasta corta":158,"Pasta lunga":158,"Patate":80,
+  "Patate dolci (batata)":85,"Pecorino":387,"Pecorino romano":387,"Penne":158,"Pepe":251,"Pepe nero":251,
+  "Peperoncino":40,"Peperoni":20,"Pere":57,"Pesca":39,"Pesce spada":109,"Pesto":450,"Petto di pollo":165,
+  "Petto di tacchino":135,"Pinoli":673,"Piselli":81,"Pistacchi":560,"Polenta":70,"Polpo":82,"Pomodori":18,
+  "Pomodori secchi":258,"Pomodorini":18,"Pomodoro":18,"Pompelmo":42,"Porri":29,"Prezzemolo":36,"Prosciutto cotto":145,
+  "Prosciutto crudo":268,"Provola":290,"Prugna":46,"Quinoa":368,"Rafano":48,"Ravanelli":16,"Ricotta":146,
+  "Ricotta salata":280,"Riso":332,"Riso basmati":350,"Riso Carnaroli":332,"Riso cotto":130,"Robiola":280,
+  "Rosmarino":131,"Rucola":25,"Salame":425,"Salmone":208,"Salmone affumicato":117,"Salsa BBQ":172,"Salsa di soia":53,
+  "Salsa Worcestershire":78,"Salsiccia":325,"Salvia":315,"Scalogno":72,"Sedano":16,"Sedano rapa":25,"Seitan":370,
+  "Semi di sesamo":573,"Semi di zucca":446,"Senape":66,"Senape di Digione":66,"Spaghetti":158,"Speck":298,
+  "Spezie miste":280,"Spinaci":23,"Stracchino":290,"Susina":46,"Tacchino":189,"Tahin (crema di sesamo)":595,
+  "Tahina":595,"Tempeh":192,"Timo":101,"Tofu":76,"Tonno fresco":132,"Tonno sott'olio":189,"Tuorlo d'uovo":322,
+  "Té matcha":3,"Uova":155,"Uovo":155,"Uva":69,"Uvetta":299,"Vaniglia":288,"Verza":27,"Vino bianco":82,
+  "Vino rosso":85,"Vongole":72,"Wurstel":265,"Yogurt bianco":61,"Yogurt greco":97,"Yogurt greco 0%":55,
+  "Zafferano":310,"Zenzero":80,"Zucca":26,"Zucchero":387,"Zucchero a velo":389,"Zucchero di canna":380,"Zucchine":17,
+};
+const KCAL_DEFAULT = 90;
+
 const CATEGORIES = [
   { key: "antipasti", label: "Antipasti", color: "--herb" },
   { key: "primi", label: "Primi", color: "--saffron" },
@@ -369,6 +416,62 @@ function catsOf(r) {
   return [];
 }
 const ADMIN_EMAIL = "filippo.verlicchi@gmail.com";
+
+/* ---------------- calorie estimate ---------------- */
+const UNIT_WEIGHT_G = {
+  "uovo": 55, "uova": 55, "tuorlo d'uovo": 18, "albume d'uovo": 33,
+  "mela": 150, "pesca": 130, "arancia": 150, "limone": 90, "lime": 50,
+  "banana": 120, "cipolla": 110, "cipolla rossa": 110, "scalogno": 25,
+  "pomodoro": 120, "pomodorino": 15, "patata": 150, "zucchina": 200,
+  "carota": 70, "melanzana": 250, "peperone": 150, "spicchio d'aglio": 5,
+  "aglio": 5, "mandarino": 60, "clementina": 60, "kiwi": 70, "avocado": 200,
+  "fetta di pane": 30, "fetta": 30,
+};
+function parseGramsFromNote(note, canonicalName) {
+  if (!note) return 0;
+  const txt = note.toLowerCase().replace(",", ".");
+  let m = txt.match(/(\d+(?:\.\d+)?)\s*(kg|chil)/);
+  if (m) return parseFloat(m[1]) * 1000;
+  m = txt.match(/(\d+(?:\.\d+)?)\s*(g|gr|grammi)\b/);
+  if (m) return parseFloat(m[1]);
+  m = txt.match(/(\d+(?:\.\d+)?)\s*(l|lt|litri)\b/);
+  if (m) return parseFloat(m[1]) * 1000;
+  m = txt.match(/(\d+(?:\.\d+)?)\s*(ml|cl)\b/);
+  if (m) return parseFloat(m[1]) * (txt.includes("cl") ? 10 : 1);
+  m = txt.match(/^(\d+(?:\.\d+)?)\b/);
+  if (m) {
+    const count = parseFloat(m[1]);
+    const key = (canonicalName || "").toLowerCase();
+    const unit = UNIT_WEIGHT_G[key] || 50;
+    return count * unit;
+  }
+  return 0;
+}
+function estimateRecipeKcal(rec) {
+  let total = 0, countedItems = 0, totalItems = 0;
+  (rec.ingredients || []).forEach((ing) => {
+    if (typeof ing === "string") return;
+    totalItems++;
+    const grams = parseGramsFromNote(ing.note, ing.name);
+    if (grams <= 0) return;
+    const per100 = ing.name && KCAL_PER_100G[ing.name] !== undefined ? KCAL_PER_100G[ing.name] : KCAL_DEFAULT;
+    total += (grams / 100) * per100;
+    countedItems++;
+  });
+  if (countedItems === 0) return null;
+  return { total: Math.round(total), partial: countedItems < totalItems, countedItems, totalItems };
+}
+const FIT_THRESHOLD_PER_SERVING = 550;
+function kcalPerServing(rec) {
+  const est = estimateRecipeKcal(rec);
+  if (!est) return null;
+  const servings = rec.servings && rec.servings > 0 ? rec.servings : 4;
+  return { perServing: Math.round(est.total / servings), total: est.total, partial: est.partial, servings };
+}
+function isFitRecipe(rec) {
+  const k = kcalPerServing(rec);
+  return k && !k.partial && k.perServing <= FIT_THRESHOLD_PER_SERVING;
+}
 
 function rid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
@@ -780,6 +883,9 @@ function recipeCard(r) {
   if (r.exclusive) {
     thumb.appendChild(el("div", { class: "exclusive-badge" }, [el("span", { html: ICONS.lock }), "ESCLUSIVA"]));
   }
+  if (isFitRecipe(r)) {
+    thumb.appendChild(el("div", { class: "exclusive-badge", style: { left: "auto", right: "8px", top: "auto", bottom: "8px", background: "var(--herb)" } }, "FIT"));
+  }
   const isFav = myFavorites.includes(r.id);
   const favBtn = el("button", {
     html: isFav ? ICONS.heartFilled : ICONS.heart,
@@ -955,7 +1061,7 @@ function renderBottomTabBar(active) {
 
   const plusBtn = el("button", { class: "tab-item-plus", html: ICONS.plus });
   plusBtn.addEventListener("click", () => {
-    draft = { name: "", categories: [CATEGORIES[0].key], coverImage: null, exclusive: false,
+    draft = { name: "", categories: [CATEGORIES[0].key], coverImage: null, exclusive: false, servings: "4",
       ingredients: [{ name: "", note: "" }], steps: [{ id: rid(), text: "", hasTimer: false, minutes: "5", seconds: "0", image: null }] };
     route = { screen: "create", selectedId: null };
     render();
@@ -1081,6 +1187,12 @@ function renderCreate() {
     catRow.appendChild(chip);
   });
   body.appendChild(catRow);
+
+  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Porzioni (per calcolare le kcal a porzione)"));
+  const servingsInput = el("input", { class: "field", type: "text", inputmode: "numeric", value: draft.servings, style: { marginBottom: "18px", maxWidth: "100px" } });
+  servingsInput.addEventListener("input", (e) => { if (/^\d{0,2}$/.test(e.target.value)) draft.servings = e.target.value; else e.target.value = draft.servings; });
+  servingsInput.addEventListener("blur", () => { draft.servings = String(Math.max(1, parseInt(draft.servings, 10) || 4)); servingsInput.value = draft.servings; });
+  body.appendChild(servingsInput);
 
   const myExclusiveCount = myExclusiveRecipes.filter((r) => r.id !== editingRecipeId).length;
   const exclusiveBox = el("div", { class: "step-card", style: { marginBottom: "20px" } });
@@ -1260,6 +1372,7 @@ function saveRecipe() {
       name: draft.name.trim(),
       categories: draft.categories,
       exclusive: !!draft.exclusive,
+      servings: parseInt(draft.servings, 10) || 4,
       coverImage: draft.coverImage || null,
       ingredients: draft.ingredients.filter((i) => i.name.trim() || (i.note || "").trim()).map((i) => ({ name: i.name.trim(), note: (i.note || "").trim() })),
       ingredientNames: draft.ingredients.filter((i) => i.name.trim()).map((i) => i.name.trim().toLowerCase()),
@@ -1431,6 +1544,7 @@ function renderDetail() {
         editingRecipeId = rec.id;
         draft = {
           name: rec.name, categories: catsOf(rec), coverImage: rec.coverImage || null, exclusive: !!rec.exclusive,
+          servings: String(rec.servings || 4),
           ingredients: rec.ingredients && rec.ingredients.length
             ? rec.ingredients.map((i) => typeof i === "string" ? { name: "", note: i } : { name: i.name || "", note: i.note || "" })
             : [{ name: "", note: "" }],
@@ -1497,6 +1611,20 @@ function renderDetail() {
     voteActionBtn.addEventListener("click", () => toggleVote(rec));
     actionsRow.append(favActionBtn, voteActionBtn);
     body.appendChild(actionsRow);
+
+    const kcalInfo = kcalPerServing(rec);
+    if (kcalInfo) {
+      const fit = !kcalInfo.partial && kcalInfo.perServing <= FIT_THRESHOLD_PER_SERVING;
+      const kcalBox = el("div", { class: "row", style: { gap: "10px", padding: "12px 16px", borderRadius: "12px", background: fit ? "color-mix(in srgb, var(--herb) 14%, var(--card))" : "var(--card-dim)", marginBottom: "18px", border: "1px solid var(--line)" } });
+      kcalBox.appendChild(el("div", { style: { fontFamily: "'Fraunces', Georgia, serif", fontSize: "20px", color: fit ? "var(--herb)" : "var(--ink)" } }, "~" + kcalInfo.perServing));
+      const textCol = el("div", { style: { flex: 1 } });
+      textCol.appendChild(el("p", { style: { fontSize: "12.5px", fontWeight: 600, margin: 0 } },
+        "kcal a porzione" + (fit ? " · FIT" : "") + " (" + kcalInfo.servings + " porzioni, ~" + kcalInfo.total + " totali)"));
+      textCol.appendChild(el("p", { style: { fontSize: "10.5px", color: "var(--ink-soft)", margin: "2px 0 0" } },
+        kcalInfo.partial ? "Stima parziale: alcuni ingredienti non hanno un peso indicato." : "Stima approssimativa in base agli ingredienti."));
+      kcalBox.appendChild(textCol);
+      body.appendChild(kcalBox);
+    }
 
     if (rec.ingredients && rec.ingredients.length) {
       const box = el("div", { class: "card", style: { padding: "14px 16px", marginBottom: "24px" } });
