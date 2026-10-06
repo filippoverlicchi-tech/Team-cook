@@ -461,16 +461,10 @@ function estimateRecipeKcal(rec) {
   if (countedItems === 0) return null;
   return { total: Math.round(total), partial: countedItems < totalItems, countedItems, totalItems };
 }
-const FIT_THRESHOLD_PER_SERVING = 550;
-function kcalPerServing(rec) {
-  const est = estimateRecipeKcal(rec);
-  if (!est) return null;
-  const servings = rec.servings && rec.servings > 0 ? rec.servings : 4;
-  return { perServing: Math.round(est.total / servings), total: est.total, partial: est.partial, servings };
-}
+const FIT_THRESHOLD_TOTAL = 2000;
 function isFitRecipe(rec) {
-  const k = kcalPerServing(rec);
-  return k && !k.partial && k.perServing <= FIT_THRESHOLD_PER_SERVING;
+  const k = estimateRecipeKcal(rec);
+  return k && !k.partial && k.total <= FIT_THRESHOLD_TOTAL;
 }
 
 function rid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -1612,16 +1606,16 @@ function renderDetail() {
     actionsRow.append(favActionBtn, voteActionBtn);
     body.appendChild(actionsRow);
 
-    const kcalInfo = kcalPerServing(rec);
+    const kcalInfo = estimateRecipeKcal(rec);
     if (kcalInfo) {
-      const fit = !kcalInfo.partial && kcalInfo.perServing <= FIT_THRESHOLD_PER_SERVING;
+      const fit = !kcalInfo.partial && kcalInfo.total <= FIT_THRESHOLD_TOTAL;
       const kcalBox = el("div", { class: "row", style: { gap: "10px", padding: "12px 16px", borderRadius: "12px", background: fit ? "color-mix(in srgb, var(--herb) 14%, var(--card))" : "var(--card-dim)", marginBottom: "18px", border: "1px solid var(--line)" } });
-      kcalBox.appendChild(el("div", { style: { fontFamily: "'Fraunces', Georgia, serif", fontSize: "20px", color: fit ? "var(--herb)" : "var(--ink)" } }, "~" + kcalInfo.perServing));
+      kcalBox.appendChild(el("div", { style: { fontFamily: "'Fraunces', Georgia, serif", fontSize: "20px", color: fit ? "var(--herb)" : "var(--ink)" } }, "~" + kcalInfo.total));
       const textCol = el("div", { style: { flex: 1 } });
       textCol.appendChild(el("p", { style: { fontSize: "12.5px", fontWeight: 600, margin: 0 } },
-        "kcal a porzione" + (fit ? " · FIT" : "") + " (" + kcalInfo.servings + " porzioni, ~" + kcalInfo.total + " totali)"));
+        "kcal totali del piatto" + (fit ? " · FIT" : "")));
       textCol.appendChild(el("p", { style: { fontSize: "10.5px", color: "var(--ink-soft)", margin: "2px 0 0" } },
-        kcalInfo.partial ? "Stima parziale: alcuni ingredienti non hanno un peso indicato." : "Stima approssimativa in base agli ingredienti."));
+        kcalInfo.partial ? "Stima parziale: alcuni ingredienti non hanno un peso indicato." : "Stima approssimativa in base a ingredienti e quantità."));
       kcalBox.appendChild(textCol);
       body.appendChild(kcalBox);
     }
