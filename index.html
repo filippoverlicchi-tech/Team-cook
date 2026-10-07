@@ -1182,7 +1182,7 @@ function renderCreate() {
   });
   body.appendChild(catRow);
 
-  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Porzioni (per calcolare le kcal a porzione)"));
+  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Porzioni"));
   const servingsInput = el("input", { class: "field", type: "text", inputmode: "numeric", value: draft.servings, style: { marginBottom: "18px", maxWidth: "100px" } });
   servingsInput.addEventListener("input", (e) => { if (/^\d{0,2}$/.test(e.target.value)) draft.servings = e.target.value; else e.target.value = draft.servings; });
   servingsInput.addEventListener("blur", () => { draft.servings = String(Math.max(1, parseInt(draft.servings, 10) || 4)); servingsInput.value = draft.servings; });
