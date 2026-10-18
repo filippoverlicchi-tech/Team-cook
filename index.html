@@ -1433,9 +1433,20 @@ function stepTimerBlock(step) {
     controls.appendChild(stopBtn);
   } else {
     const resetBtn = el("button", { class: "icon-btn", html: ICONS.reset, style: { background: "var(--card)", color: "var(--ink)" } });
-    resetBtn.addEventListener("click", () => { t.remaining = total; t.running = false; refreshTimerNode(step); });
+    resetBtn.addEventListener("click", () => { t.remaining = total; t.running = false; t.endAt = null; refreshTimerNode(step); });
     const playBtn = el("button", { class: "icon-btn", html: t.running ? ICONS.pause : ICONS.play, style: { background: "var(--herb)", color: "#fff" } });
-    playBtn.addEventListener("click", () => { unlockAudio(); t.running = !t.running; refreshTimerNode(step); });
+    playBtn.addEventListener("click", () => {
+      unlockAudio();
+      if (t.running) {
+        t.remaining = Math.max(0, Math.ceil((t.endAt - Date.now()) / 1000));
+        t.running = false;
+        t.endAt = null;
+      } else {
+        t.endAt = Date.now() + t.remaining * 1000;
+        t.running = true;
+      }
+      refreshTimerNode(step);
+    });
     controls.append(resetBtn, playBtn);
   }
 
@@ -1451,35 +1462,43 @@ function refreshTimerNode(step) {
   old.replaceWith(fresh);
 }
 
+function tickTimersOnce() {
+  if (route.screen !== "detail") return;
+  const rec = getRecipeById(route.selectedId);
+  if (!rec) return;
+  rec.steps.forEach((step) => {
+    const t = timers[step.id];
+    if (t && t.running && t.endAt) {
+      const newRemaining = Math.max(0, Math.ceil((t.endAt - Date.now()) / 1000));
+      if (newRemaining !== t.remaining) t.remaining = newRemaining;
+      if (t.remaining <= 0) {
+        t.running = false; t.ringing = true; t.endAt = null;
+        startAlarm(step.id);
+        refreshTimerNode(step);
+        return;
+      }
+      const timeEl = document.getElementById("time-" + step.id);
+      const ring = document.querySelector('[data-ring="' + step.id + '"]');
+      if (timeEl) {
+        const mm = String(Math.floor(t.remaining / 60)).padStart(2, "0");
+        const ss = String(t.remaining % 60).padStart(2, "0");
+        timeEl.textContent = mm + ":" + ss;
+      }
+      if (ring) {
+        const c = 2 * Math.PI * 22;
+        ring.setAttribute("stroke-dashoffset", c * (1 - (t.total > 0 ? t.remaining / t.total : 0)));
+      }
+    }
+  });
+}
+
 let tickInterval = null;
 function startTicking() {
   if (tickInterval) return;
-  tickInterval = setInterval(() => {
-    if (route.screen !== "detail") return;
-    const rec = getRecipeById(route.selectedId);
-    if (!rec) return;
-    rec.steps.forEach((step) => {
-      const t = timers[step.id];
-      if (t && t.running && t.remaining > 0) {
-        t.remaining -= 1;
-        if (t.remaining === 0) { t.running = false; t.ringing = true; startAlarm(step.id); }
-        const timeEl = document.getElementById("time-" + step.id);
-        const statusEl = document.getElementById("status-" + step.id);
-        const ring = document.querySelector('[data-ring="' + step.id + '"]');
-        if (t.ringing) {
-          refreshTimerNode(step);
-        } else if (timeEl && statusEl) {
-          const mm = String(Math.floor(t.remaining / 60)).padStart(2, "0");
-          const ss = String(t.remaining % 60).padStart(2, "0");
-          timeEl.textContent = mm + ":" + ss;
-          if (ring) {
-            const c = 2 * Math.PI * 22;
-            ring.setAttribute("stroke-dashoffset", c * (1 - (t.total > 0 ? t.remaining / t.total : 0)));
-          }
-        }
-      }
-    });
-  }, 1000);
+  tickInterval = setInterval(tickTimersOnce, 1000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) tickTimersOnce(); });
+  window.addEventListener("focus", tickTimersOnce);
+  window.addEventListener("pageshow", tickTimersOnce);
 }
 
 function ringingStepInfo(rec) {
