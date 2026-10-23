@@ -145,6 +145,15 @@
   .profile-stat span { font-size: 11px; color: var(--ink-soft); }
   .exclusive-badge { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; background: rgba(20,20,20,.6); backdrop-filter: blur(3px); color: #fff; font-size: 9.5px; font-weight: 600; }
   .locked-box { text-align: center; padding: 50px 24px; color: var(--ink-soft); }
+
+  /* shopping list */
+  .shop-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .shop-check { width: 22px; height: 22px; border-radius: 999px; border: 2px solid var(--line); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .shop-check.checked { background: var(--herb); border-color: var(--herb); color: #fff; }
+  .shop-text { flex: 1; min-width: 0; }
+  .shop-text .note { font-size: 14px; }
+  .shop-text .note.checked { text-decoration: line-through; color: var(--ink-soft); }
+  .shop-text .from { font-size: 10.5px; color: var(--ink-soft); }
   .scroll-x { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
   .scroll-x::-webkit-scrollbar { display: none; }
   @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .5 } }
@@ -222,6 +231,7 @@ const ICONS = {
   filter: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>',
   edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>',
   database: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
+  cart: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>',
   upload: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
   download: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
   heart: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>',
@@ -573,6 +583,7 @@ const STORY_TTL = 24 * 60 * 60 * 1000;
 let myFollowing = [];
 let profileCache = {};
 let myExclusiveRecipes = [];
+let shoppingItems = [];
 let exclusiveDocCache = {};
 const MAX_EXCLUSIVE = 40;
 let route = { screen: "login", selectedId: null };
@@ -604,6 +615,7 @@ function initFirebase() {
       subscribeFollowing();
       ensureProfileDoc();
       subscribeMyExclusive();
+      subscribeShoppingList();
       render();
     } else {
       currentUid = null;
@@ -615,6 +627,7 @@ function initFirebase() {
       profileCache = {};
       myExclusiveRecipes = [];
       exclusiveDocCache = {};
+      shoppingItems = [];
       route = { screen: "login", selectedId: null };
       render();
     }
@@ -642,6 +655,88 @@ function toggleVote(rec) {
   const hasVoted = votedBy.includes(currentUid);
   const op = hasVoted ? firebase.firestore.FieldValue.arrayRemove(currentUid) : firebase.firestore.FieldValue.arrayUnion(currentUid);
   fdb.collection("recipes").doc(rec.id).update({ votedBy: op }).catch((e) => console.error(e));
+}
+
+/* ---------------- shopping list ---------------- */
+function subscribeShoppingList() {
+  fdb.collection("shoppingLists").doc(currentUid).onSnapshot(
+    (doc) => {
+      shoppingItems = (doc.exists && Array.isArray(doc.data().items)) ? doc.data().items : [];
+      if (route.screen === "shopping") renderShoppingList();
+    },
+    (err) => console.error("shopping list onSnapshot error", err)
+  );
+}
+function saveShoppingList(items) {
+  fdb.collection("shoppingLists").doc(currentUid).set({ items }).catch((e) => console.error(e));
+}
+function formatGrams(g) {
+  if (g >= 1000) {
+    const kg = g / 1000;
+    return (Number.isInteger(kg) ? kg : kg.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")) + "kg";
+  }
+  return Math.round(g) + "g";
+}
+function addRecipeToShoppingList(rec) {
+  const items = [...shoppingItems];
+  let addedCount = 0;
+
+  (rec.ingredients || []).forEach((ing) => {
+    if (typeof ing === "string" || (!ing.name && !ing.note)) return;
+    const note = ing.note || ing.name;
+    const grams = ing.name ? parseGramsFromNote(note, ing.name) : 0;
+
+    if (ing.name && grams > 0) {
+      // sommabile: cerca una riga esistente con lo stesso ingrediente e unisci i grammi
+      const existing = items.find((i) => i.name === ing.name && i.grams > 0);
+      if (existing) {
+        existing.grams += grams;
+        if (!existing.recipes.includes(rec.name)) existing.recipes.push(rec.name);
+      } else {
+        items.push({ id: rid(), name: ing.name, grams, extraNotes: [], recipes: [rec.name], checked: false });
+      }
+      addedCount++;
+      return;
+    }
+
+    if (ing.name) {
+      // stesso ingrediente ma senza un peso leggibile: raggruppa come nota extra, non sommata
+      const existing = items.find((i) => i.name === ing.name);
+      if (existing) {
+        if (!existing.extraNotes.some((n) => n.note === note && n.recipeName === rec.name)) {
+          existing.extraNotes.push({ note, recipeName: rec.name });
+          addedCount++;
+        }
+      } else {
+        items.push({ id: rid(), name: ing.name, grams: 0, extraNotes: [{ note, recipeName: rec.name }], recipes: [rec.name], checked: false });
+        addedCount++;
+      }
+      return;
+    }
+
+    // nessun nome fisso: riga libera, non raggruppabile
+    const dup = items.some((i) => !i.name && i.note === note && i.recipeName === rec.name);
+    if (!dup) {
+      items.push({ id: rid(), name: "", note, recipeName: rec.name, checked: false });
+      addedCount++;
+    }
+  });
+
+  if (addedCount === 0) return 0;
+  saveShoppingList(items);
+  return addedCount;
+}
+function toggleShoppingItem(id) {
+  saveShoppingList(shoppingItems.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
+}
+function removeShoppingItem(id) {
+  saveShoppingList(shoppingItems.filter((i) => i.id !== id));
+}
+function clearCheckedShoppingItems() {
+  saveShoppingList(shoppingItems.filter((i) => !i.checked));
+}
+function clearShoppingList() {
+  saveShoppingList([]);
 }
 
 /* ---------------- stories (24h) ---------------- */
@@ -854,6 +949,7 @@ function renderCurrent() {
   else if (route.screen === "profile") renderProfile();
   else if (route.screen === "profile-edit") renderProfileEdit();
   else if (route.screen === "follow-list") renderFollowList();
+  else if (route.screen === "shopping") renderShoppingList();
   else if (route.screen === "stories") renderStories();
   else if (route.screen === "story-create") renderStoryCreate();
   else renderLogin();
@@ -988,6 +1084,10 @@ function renderDrawer() {
   const favItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.heart }), "Preferiti"]);
   favItem.addEventListener("click", () => { closeDrawer(); route = { screen: "favorites", selectedId: null }; render(); });
   panel.appendChild(favItem);
+
+  const shopItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.cart }), "Lista della spesa"]);
+  shopItem.addEventListener("click", () => { closeDrawer(); route = { screen: "shopping", selectedId: null }; render(); });
+  panel.appendChild(shopItem);
 
   panel.appendChild(el("div", { class: "drawer-section-title" }, "Sfoglia"));
   const catToggle = el("button", { class: "drawer-item", style: { justifyContent: "space-between" } }, [
@@ -1613,7 +1713,7 @@ function renderDetail() {
     const isFavHere = myFavorites.includes(rec.id);
     const votedByHere = Array.isArray(rec.votedBy) ? rec.votedBy : [];
     const hasVotedHere = votedByHere.includes(currentUid);
-    const actionsRow = el("div", { class: "row", style: { justifyContent: "center", gap: "10px", marginBottom: "22px" } });
+    const actionsRow = el("div", { class: "row", style: { justifyContent: "center", gap: "10px", marginBottom: "22px", flexWrap: "wrap" } });
     const favActionBtn = el("button", {
       class: "chip", style: { display: "flex", alignItems: "center", gap: "6px", color: isFavHere ? "var(--clay)" : "var(--ink)", borderColor: isFavHere ? "var(--clay)" : "var(--line)" },
     }, [el("span", { html: isFavHere ? ICONS.heartFilled : ICONS.heart }), isFavHere ? "Nei preferiti" : "Preferiti"]);
@@ -1622,7 +1722,15 @@ function renderDetail() {
       class: "chip", style: { display: "flex", alignItems: "center", gap: "6px", color: hasVotedHere ? "var(--saffron)" : "var(--ink)", borderColor: hasVotedHere ? "var(--saffron)" : "var(--line)" },
     }, [el("span", { html: hasVotedHere ? ICONS.thumbFilled : ICONS.thumb }), String(votedByHere.length)]);
     voteActionBtn.addEventListener("click", () => toggleVote(rec));
-    actionsRow.append(favActionBtn, voteActionBtn);
+    const shopActionBtn = el("button", {
+      class: "chip", style: { display: "flex", alignItems: "center", gap: "6px" },
+    }, [el("span", { html: ICONS.cart }), "Aggiungi alla spesa"]);
+    shopActionBtn.addEventListener("click", () => {
+      const added = addRecipeToShoppingList(rec);
+      shopActionBtn.lastChild.textContent = added > 0 ? "Aggiunta!" : "Già in lista";
+      setTimeout(() => { shopActionBtn.lastChild.textContent = "Aggiungi alla spesa"; }, 1500);
+    });
+    actionsRow.append(favActionBtn, voteActionBtn, shopActionBtn);
     body.appendChild(actionsRow);
 
     const kcalInfo = estimateRecipeKcal(rec);
@@ -2070,6 +2178,60 @@ function renderProfileEdit() {
   app.appendChild(body);
 }
 
+/* ---------------- shopping list screen ---------------- */
+function renderShoppingList() {
+  app.innerHTML = "";
+  app.appendChild(header({ title: "Lista della spesa", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
+  const body = el("div", { style: { padding: "0 20px 40px" } });
+
+  if (shoppingItems.length === 0) {
+    body.appendChild(el("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--ink-soft)" } }, [
+      el("div", { html: ICONS.cart, style: { display: "flex", justifyContent: "center", marginBottom: "10px" } }),
+      el("p", { style: { fontSize: "13px" } }, "Lista vuota. Apri una ricetta e tocca \"Aggiungi alla spesa\"."),
+    ]));
+    app.appendChild(body);
+    return;
+  }
+
+  const actionsRow = el("div", { class: "row", style: { gap: "8px", marginBottom: "6px" } });
+  const clearCheckedBtn = el("button", { class: "btn-ghost", style: { flex: 1 } }, "Rimuovi spuntati");
+  clearCheckedBtn.addEventListener("click", clearCheckedShoppingItems);
+  const clearAllBtn = el("button", { class: "btn-ghost", style: { flex: 1, color: "var(--clay)", borderColor: "var(--clay)" } }, "Svuota tutto");
+  clearAllBtn.addEventListener("click", clearShoppingList);
+  actionsRow.append(clearCheckedBtn, clearAllBtn);
+  body.appendChild(actionsRow);
+
+  const sorted = [...shoppingItems].sort((a, b) => Number(a.checked) - Number(b.checked));
+  const list = el("div", { style: { marginTop: "10px" } });
+  sorted.forEach((item) => {
+    const row = el("div", { class: "shop-row" });
+    const check = el("button", { class: "shop-check" + (item.checked ? " checked" : ""), html: item.checked ? ICONS.check : "" });
+    check.addEventListener("click", () => toggleShoppingItem(item.id));
+
+    const textCol = el("div", { class: "shop-text" });
+    if (item.name) {
+      const mainLine = item.grams > 0 ? formatGrams(item.grams) + " " + item.name : item.name;
+      textCol.appendChild(el("p", { class: "note" + (item.checked ? " checked" : ""), style: { margin: 0, fontWeight: 600 } }, mainLine));
+      if (item.extraNotes && item.extraNotes.length) {
+        item.extraNotes.forEach((n) => {
+          textCol.appendChild(el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", margin: "2px 0 0" } }, "+ " + n.note + " (" + n.recipeName + ")"));
+        });
+      }
+      textCol.appendChild(el("p", { class: "from", style: { margin: "1px 0 0" } }, "da " + (item.recipes || []).join(", ")));
+    } else {
+      textCol.appendChild(el("p", { class: "note" + (item.checked ? " checked" : ""), style: { margin: 0 } }, item.note));
+      textCol.appendChild(el("p", { class: "from", style: { margin: "1px 0 0" } }, "da " + item.recipeName));
+    }
+
+    const rm = el("button", { html: ICONS.x, style: { color: "var(--ink-soft)" } });
+    rm.addEventListener("click", () => removeShoppingItem(item.id));
+    row.append(check, textCol, rm);
+    list.appendChild(row);
+  });
+  body.appendChild(list);
+  app.appendChild(body);
+}
+
 /* ---------------- favorites ---------------- */
 function renderFavorites() {
   app.innerHTML = "";
@@ -2268,6 +2430,7 @@ function render() {
   else if (route.screen === "profile") renderProfile();
   else if (route.screen === "profile-edit") renderProfileEdit();
   else if (route.screen === "follow-list") renderFollowList();
+  else if (route.screen === "shopping") renderShoppingList();
   else if (route.screen === "stories") renderStories();
   else if (route.screen === "story-create") renderStoryCreate();
   else renderHome();
