@@ -232,6 +232,10 @@ const ICONS = {
   edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>',
   database: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
   cart: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>',
+  clock2: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  gauge: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14 15 9"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>',
+  calendarDays: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  minus: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>',
   upload: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
   download: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
   heart: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>',
@@ -457,6 +461,16 @@ function parseGramsFromNote(note, canonicalName) {
   }
   return 0;
 }
+function scaleNote(note, factor) {
+  if (!note || factor === 1) return note;
+  const m = note.match(/^(\d+(?:[.,]\d+)?)(\s*)(.*)$/);
+  if (!m) return note;
+  const num = parseFloat(m[1].replace(",", "."));
+  let scaled = num * factor;
+  scaled = scaled >= 10 ? Math.round(scaled) : Math.round(scaled * 10) / 10;
+  const numStr = Number.isInteger(scaled) ? String(scaled) : String(scaled).replace(".", ",");
+  return numStr + m[2] + m[3];
+}
 function estimateRecipeKcal(rec) {
   let total = 0, countedItems = 0, totalItems = 0;
   (rec.ingredients || []).forEach((ing) => {
@@ -584,6 +598,12 @@ let myFollowing = [];
 let profileCache = {};
 let myExclusiveRecipes = [];
 let shoppingItems = [];
+let viewServings = null;
+let mealPlan = {};
+const PLAN_DAYS = [
+  { key: "lun", label: "Lunedì" }, { key: "mar", label: "Martedì" }, { key: "mer", label: "Mercoledì" },
+  { key: "gio", label: "Giovedì" }, { key: "ven", label: "Venerdì" }, { key: "sab", label: "Sabato" }, { key: "dom", label: "Domenica" },
+];
 let exclusiveDocCache = {};
 const MAX_EXCLUSIVE = 40;
 let route = { screen: "login", selectedId: null };
@@ -616,6 +636,7 @@ function initFirebase() {
       ensureProfileDoc();
       subscribeMyExclusive();
       subscribeShoppingList();
+      subscribeMealPlan();
       render();
     } else {
       currentUid = null;
@@ -628,6 +649,7 @@ function initFirebase() {
       myExclusiveRecipes = [];
       exclusiveDocCache = {};
       shoppingItems = [];
+      mealPlan = {};
       route = { screen: "login", selectedId: null };
       render();
     }
@@ -737,6 +759,35 @@ function clearCheckedShoppingItems() {
 }
 function clearShoppingList() {
   saveShoppingList([]);
+}
+
+/* ---------------- weekly meal plan ---------------- */
+function subscribeMealPlan() {
+  fdb.collection("mealPlans").doc(currentUid).onSnapshot(
+    (doc) => {
+      mealPlan = (doc.exists && doc.data().days) ? doc.data().days : {};
+      if (route.screen === "planner") renderPlanner();
+    },
+    (err) => console.error("meal plan onSnapshot error", err)
+  );
+}
+function saveMealPlan(days) {
+  fdb.collection("mealPlans").doc(currentUid).set({ days }).catch((e) => console.error(e));
+}
+function addToPlan(dayKey, recipeId) {
+  const days = { ...mealPlan };
+  const list = Array.isArray(days[dayKey]) ? [...days[dayKey]] : [];
+  if (!list.includes(recipeId)) list.push(recipeId);
+  days[dayKey] = list;
+  saveMealPlan(days);
+}
+function removeFromPlan(dayKey, recipeId) {
+  const days = { ...mealPlan };
+  days[dayKey] = (days[dayKey] || []).filter((id) => id !== recipeId);
+  saveMealPlan(days);
+}
+function clearMealPlan() {
+  saveMealPlan({});
 }
 
 /* ---------------- stories (24h) ---------------- */
@@ -959,7 +1010,7 @@ function renderCurrent() {
 function recipeCard(r) {
   const cats = catsOf(r).map((k) => CATEGORIES.find((c) => c.key === k)).filter(Boolean);
   const card = el("div", { class: "grid-card" });
-  const clickWrap = el("div", { style: { cursor: "pointer" }, onclick: () => { timers = {}; route = { screen: "detail", selectedId: r.id, step: -1 }; render(); } });
+  const clickWrap = el("div", { style: { cursor: "pointer" }, onclick: () => { timers = {}; viewServings = null; route = { screen: "detail", selectedId: r.id, step: -1 }; render(); } });
   const thumb = el("div", { class: "grid-thumb" });
   if (r.coverImage) thumb.appendChild(el("img", { src: r.coverImage, alt: r.name }));
   else thumb.innerHTML = ICONS.chef;
@@ -993,7 +1044,7 @@ function recipeCard(r) {
   const info = el("div", { class: "grid-info" }, [
     el("h3", { class: "grid-title" }, r.name),
     el("div", { class: "row", style: { justifyContent: "space-between", alignItems: "center" } }, [
-      el("p", { class: "grid-meta" }, (r.steps || []).length + " passaggi"),
+      el("p", { class: "grid-meta" }, (r.steps || []).length + " passaggi" + (r.prepMinutes ? " · " + r.prepMinutes + " min" : "")),
       voteBtn,
     ]),
   ]);
@@ -1155,7 +1206,7 @@ function renderBottomTabBar(active) {
 
   const plusBtn = el("button", { class: "tab-item-plus", html: ICONS.plus });
   plusBtn.addEventListener("click", () => {
-    draft = { name: "", categories: [CATEGORIES[0].key], coverImage: null, exclusive: false, servings: "4",
+    draft = { name: "", categories: [CATEGORIES[0].key], coverImage: null, exclusive: false, servings: "4", prepMinutes: "", difficulty: "media",
       ingredients: [{ name: "", note: "" }], steps: [{ id: rid(), text: "", hasTimer: false, minutes: "5", seconds: "0", image: null }] };
     route = { screen: "create", selectedId: null };
     render();
@@ -1256,7 +1307,7 @@ function renderCreate() {
   app.innerHTML = "";
   const wasEditing = !!editingRecipeId;
   app.appendChild(header({ title: wasEditing ? "Modifica ricetta" : "Nuova ricetta", back: true, onBack: () => {
-    if (wasEditing) { const id = editingRecipeId; editingRecipeId = null; timers = {}; route = { screen: "detail", selectedId: id, step: -1 }; }
+    if (wasEditing) { const id = editingRecipeId; editingRecipeId = null; timers = {}; viewServings = null; route = { screen: "detail", selectedId: id, step: -1 }; }
     else route = { screen: "home", selectedId: null };
     render();
   }}));
@@ -1287,6 +1338,27 @@ function renderCreate() {
   servingsInput.addEventListener("input", (e) => { if (/^\d{0,2}$/.test(e.target.value)) draft.servings = e.target.value; else e.target.value = draft.servings; });
   servingsInput.addEventListener("blur", () => { draft.servings = String(Math.max(1, parseInt(draft.servings, 10) || 4)); servingsInput.value = draft.servings; });
   body.appendChild(servingsInput);
+
+  const timeRow2 = el("div", { class: "row", style: { gap: "16px", marginBottom: "18px", flexWrap: "wrap" } });
+  const prepCol = el("div", {});
+  prepCol.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Tempo (minuti)"));
+  const prepInput = el("input", { class: "field", type: "text", inputmode: "numeric", placeholder: "Es. 30", value: draft.prepMinutes, style: { maxWidth: "110px" } });
+  prepInput.addEventListener("input", (e) => { if (/^\d{0,3}$/.test(e.target.value)) draft.prepMinutes = e.target.value; else e.target.value = draft.prepMinutes; });
+  prepCol.appendChild(prepInput);
+  timeRow2.appendChild(prepCol);
+
+  const diffCol = el("div", { style: { flex: 1 } });
+  diffCol.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Difficoltà"));
+  const diffRow = el("div", { class: "row", style: { gap: "6px" } });
+  [["facile", "Facile"], ["media", "Media"], ["difficile", "Difficile"]].forEach(([key, label]) => {
+    const chip = el("button", { class: "chip" + (draft.difficulty === key ? " active" : "") }, label);
+    if (draft.difficulty === key) { chip.style.background = "var(--saffron)"; chip.style.borderColor = "var(--saffron)"; }
+    chip.addEventListener("click", () => { draft.difficulty = key; renderCreate(); });
+    diffRow.appendChild(chip);
+  });
+  diffCol.appendChild(diffRow);
+  timeRow2.appendChild(diffCol);
+  body.appendChild(timeRow2);
 
   const myExclusiveCount = myExclusiveRecipes.filter((r) => r.id !== editingRecipeId).length;
   const exclusiveBox = el("div", { class: "step-card", style: { marginBottom: "20px" } });
@@ -1467,6 +1539,8 @@ function saveRecipe() {
       categories: draft.categories,
       exclusive: !!draft.exclusive,
       servings: parseInt(draft.servings, 10) || 4,
+      prepMinutes: parseInt(draft.prepMinutes, 10) || 0,
+      difficulty: draft.difficulty || "media",
       coverImage: draft.coverImage || null,
       ingredients: draft.ingredients.filter((i) => i.name.trim() || (i.note || "").trim()).map((i) => ({ name: i.name.trim(), note: (i.note || "").trim() })),
       ingredientNames: draft.ingredients.filter((i) => i.name.trim()).map((i) => i.name.trim().toLowerCase()),
@@ -1483,7 +1557,7 @@ function saveRecipe() {
     ref.set(data).then(() => {
       const goToId = isEditing ? editingRecipeId : null;
       editingRecipeId = null;
-      if (goToId) { timers = {}; route = { screen: "detail", selectedId: goToId, step: -1 }; }
+      if (goToId) { timers = {}; viewServings = null; route = { screen: "detail", selectedId: goToId, step: -1 }; }
       else route = { screen: "home", selectedId: null };
       render();
     }).catch((e) => {
@@ -1657,7 +1731,7 @@ function renderDetail() {
         editingRecipeId = rec.id;
         draft = {
           name: rec.name, categories: catsOf(rec), coverImage: rec.coverImage || null, exclusive: !!rec.exclusive,
-          servings: String(rec.servings || 4),
+          servings: String(rec.servings || 4), prepMinutes: rec.prepMinutes ? String(rec.prepMinutes) : "", difficulty: rec.difficulty || "media",
           ingredients: rec.ingredients && rec.ingredients.length
             ? rec.ingredients.map((i) => typeof i === "string" ? { name: "", note: i } : { name: i.name || "", note: i.note || "" })
             : [{ name: "", note: "" }],
@@ -1707,7 +1781,11 @@ function renderDetail() {
     const authorLine = el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", margin: "0 0 12px", textAlign: "center" } });
     const authorLink = el("button", { style: { color: "var(--ink-soft)", textDecoration: "underline", fontSize: "inherit" } }, rec.author);
     authorLink.addEventListener("click", () => { route = { screen: "profile", selectedId: null, viewUid: rec.authorUid }; render(); });
-    authorLine.append("di ", authorLink, " · " + rec.steps.length + " passaggi");
+    const diffLabels = { facile: "Facile", media: "Media", difficile: "Difficile" };
+    let extra = " · " + rec.steps.length + " passaggi";
+    if (rec.prepMinutes) extra += " · " + rec.prepMinutes + " min";
+    if (rec.difficulty) extra += " · " + (diffLabels[rec.difficulty] || rec.difficulty);
+    authorLine.append("di ", authorLink, extra);
     body.appendChild(authorLine);
 
     const isFavHere = myFavorites.includes(rec.id);
@@ -1748,17 +1826,38 @@ function renderDetail() {
     }
 
     if (rec.ingredients && rec.ingredients.length) {
+      const baseServings = rec.servings || 4;
+      if (viewServings === null) viewServings = baseServings;
+      const factor = viewServings / baseServings;
+
       const box = el("div", { class: "card", style: { padding: "14px 16px", marginBottom: "24px" } });
-      box.appendChild(el("h3", { class: "display", style: { fontSize: "15px", margin: "0 0 8px" } }, "Ingredienti"));
+      const titleRow = el("div", { class: "row", style: { justifyContent: "space-between", marginBottom: "8px" } });
+      titleRow.appendChild(el("h3", { class: "display", style: { fontSize: "15px", margin: 0 } }, "Ingredienti"));
+      const stepper = el("div", { class: "row", style: { gap: "8px" } });
+      const minusBtn = el("button", { class: "icon-btn", html: ICONS.minus, style: { background: "var(--card-dim)", width: "26px", height: "26px", padding: 0 } });
+      const servingsLabel = el("span", { style: { fontSize: "12.5px", minWidth: "60px", textAlign: "center" } }, viewServings + " porz.");
+      const plusBtn = el("button", { class: "icon-btn", html: ICONS.plus, style: { background: "var(--card-dim)", width: "26px", height: "26px", padding: 0 } });
+      minusBtn.addEventListener("click", () => { if (viewServings > 1) { viewServings -= 1; renderDetail(); } });
+      plusBtn.addEventListener("click", () => { if (viewServings < 50) { viewServings += 1; renderDetail(); } });
+      stepper.append(minusBtn, servingsLabel, plusBtn);
+      titleRow.appendChild(stepper);
+      box.appendChild(titleRow);
+
       const ul = el("ul", { style: { margin: 0, padding: 0, listStyle: "none" } });
       rec.ingredients.forEach((ing) => {
-        const label = typeof ing === "string" ? ing : [ing.note, ing.name].filter(Boolean).join(" · ") || ing.name;
+        let label;
+        if (typeof ing === "string") label = ing;
+        else {
+          const note = factor !== 1 ? scaleNote(ing.note, factor) : ing.note;
+          label = [note, ing.name].filter(Boolean).join(" · ") || ing.name;
+        }
         ul.appendChild(el("li", { class: "row", style: { gap: "8px", fontSize: "13.5px", padding: "3px 0" } }, [
           el("span", { style: { width: "4px", height: "4px", borderRadius: "999px", background: "var(--herb)", flexShrink: 0 } }),
           label,
         ]));
       });
       box.appendChild(ul);
+      if (factor !== 1) box.appendChild(el("p", { style: { fontSize: "10px", color: "var(--ink-soft)", marginTop: "8px" } }, "Quantità ricalcolate da " + baseServings + " porzioni originali — solo le note con un numero all'inizio vengono scalate."));
       body.appendChild(box);
     }
 
@@ -2175,6 +2274,97 @@ function renderProfileEdit() {
       .catch((e) => { console.error(e); banner = { type: "error", text: "Salvataggio profilo non riuscito: " + e.code }; saveBtn.disabled = false; renderProfileEdit(); });
   });
   body.appendChild(saveBtn);
+  app.appendChild(body);
+}
+
+/* ---------------- weekly planner screen ---------------- */
+function openRecipePickerForDay(dayKey, dayLabel) {
+  const existing = document.getElementById("recipe-picker-sheet");
+  if (existing) existing.remove();
+
+  const backdrop = el("div", { class: "drawer-backdrop", id: "recipe-picker-sheet" });
+  const panel = el("div", {
+    style: { position: "fixed", left: "50%", bottom: "0", transform: "translateX(-50%)", width: "100%", maxWidth: "480px", maxHeight: "75vh", background: "var(--card)", borderRadius: "18px 18px 0 0", zIndex: "41", display: "flex", flexDirection: "column", boxShadow: "0 -10px 30px rgba(0,0,0,.2)" },
+    onclick: (e) => e.stopPropagation(),
+  });
+  backdrop.addEventListener("click", () => backdrop.remove());
+
+  panel.appendChild(el("div", { style: { padding: "18px 20px 10px" } }, [
+    el("h3", { class: "display", style: { fontSize: "17px", margin: 0 } }, "Aggiungi a " + dayLabel),
+  ]));
+
+  const searchWrap = el("div", { class: "search-wrap", style: { margin: "0 20px 10px" } });
+  searchWrap.innerHTML = ICONS.search;
+  const q = el("input", { class: "search-input", placeholder: "Cerca ricetta..." });
+  searchWrap.appendChild(q);
+  panel.appendChild(searchWrap);
+
+  const list = el("div", { style: { overflowY: "auto", flex: "1", padding: "0 20px 20px" } });
+  panel.appendChild(list);
+
+  function renderList() {
+    list.innerHTML = "";
+    const query = q.value.trim().toLowerCase();
+    const pool = [...recipes, ...myExclusiveRecipes.filter((r) => !recipes.some((x) => x.id === r.id))];
+    const items = pool.filter((r) => !query || r.name.toLowerCase().includes(query)).slice(0, 40);
+    if (items.length === 0) {
+      list.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", padding: "10px 0" } }, "Nessuna ricetta trovata."));
+      return;
+    }
+    items.forEach((r) => {
+      const row = el("button", { class: "row", style: { width: "100%", padding: "10px 2px", borderBottom: "1px solid var(--line)", textAlign: "left" } }, [
+        el("span", { style: { fontSize: "13.5px" } }, r.name),
+      ]);
+      row.addEventListener("click", () => { addToPlan(dayKey, r.id); backdrop.remove(); });
+      list.appendChild(row);
+    });
+  }
+  q.addEventListener("input", renderList);
+  renderList();
+
+  backdrop.appendChild(panel);
+  document.body.appendChild(backdrop);
+}
+
+function renderPlanner() {
+  app.innerHTML = "";
+  app.appendChild(header({ title: "Pianificazione settimanale", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
+  const body = el("div", { style: { padding: "0 20px 40px" } });
+
+  const hasAny = PLAN_DAYS.some((d) => (mealPlan[d.key] || []).length > 0);
+  if (hasAny) {
+    const clearBtn = el("button", { class: "btn-ghost", style: { marginBottom: "14px", color: "var(--clay)", borderColor: "var(--clay)" } }, "Svuota la settimana");
+    clearBtn.addEventListener("click", clearMealPlan);
+    body.appendChild(clearBtn);
+  }
+
+  PLAN_DAYS.forEach((d) => {
+    const card = el("div", { class: "card", style: { padding: "12px 14px", marginBottom: "12px", overflow: "visible" } });
+    const head = el("div", { class: "row", style: { justifyContent: "space-between", marginBottom: "6px" } });
+    head.appendChild(el("h3", { class: "display", style: { fontSize: "15px", margin: 0 } }, d.label));
+    const addBtn = el("button", { class: "icon-btn", html: ICONS.plus, style: { background: "var(--card-dim)", width: "28px", height: "28px", padding: 0 } });
+    addBtn.addEventListener("click", () => openRecipePickerForDay(d.key, d.label));
+    head.appendChild(addBtn);
+    card.appendChild(head);
+
+    const ids = mealPlan[d.key] || [];
+    if (ids.length === 0) {
+      card.appendChild(el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", margin: 0 } }, "Nessuna ricetta pianificata."));
+    } else {
+      ids.forEach((id) => {
+        const rec = getRecipeById(id);
+        const row = el("div", { class: "row", style: { justifyContent: "space-between", padding: "6px 0", borderTop: "1px solid var(--line)" } });
+        const nameBtn = el("button", { style: { fontSize: "13.5px", textAlign: "left", flex: 1 } }, rec ? rec.name : "Ricetta non più disponibile");
+        if (rec) nameBtn.addEventListener("click", () => { timers = {}; viewServings = null; route = { screen: "detail", selectedId: rec.id, step: -1 }; render(); });
+        const rm = el("button", { html: ICONS.x, style: { color: "var(--ink-soft)" } });
+        rm.addEventListener("click", () => removeFromPlan(d.key, id));
+        row.append(nameBtn, rm);
+        card.appendChild(row);
+      });
+    }
+    body.appendChild(card);
+  });
+
   app.appendChild(body);
 }
 
