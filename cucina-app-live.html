@@ -1,0 +1,2651 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>La Tua Cucina</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.13.2/firebase-app-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.13.2/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --card: #FFFFFF;
+    --card-dim: #F2F4F6;
+    --ink: #1F2328;
+    --ink-soft: #6B7280;
+    --glow1: transparent;
+    --glow2: transparent;
+    --saffron: #C98A2E;
+    --herb: #4F7358;
+    --clay: #B8451F;
+    --teal: #2E7E82;
+    --rose: #B85C7A;
+    --mustard: #A67C1E;
+    --plum: #6B4E9E;
+    --line: rgba(15,23,42,0.10);
+    --chalk-on-accent: #1F2328;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #262922; --card: #33362D; --card-dim: #3C3F35;
+      --glow1: color-mix(in srgb, var(--saffron) 10%, transparent); --glow2: color-mix(in srgb, var(--herb) 8%, transparent);
+      --ink: #F5F0E6; --ink-soft: #B7B3A4; --saffron: #E3A857;
+      --herb: #86AF90; --clay: #E08363; --teal: #5FB3B8; --rose: #E094AE; --mustard: #D9B24C; --plum: #A78BFA; --line: rgba(245,240,230,0.14);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #262922; --card: #33362D; --card-dim: #3C3F35;
+    --glow1: color-mix(in srgb, var(--saffron) 10%, transparent); --glow2: color-mix(in srgb, var(--herb) 8%, transparent);
+    --ink: #F5F0E6; --ink-soft: #B7B3A4; --saffron: #E3A857;
+    --herb: #86AF90; --clay: #E08363; --teal: #5FB3B8; --rose: #E094AE; --mustard: #D9B24C; --plum: #A78BFA; --line: rgba(245,240,230,0.14);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(circle at 15% 0%, var(--glow1), transparent 45%),
+      radial-gradient(circle at 100% 30%, var(--glow2), transparent 50%),
+      var(--bg);
+    background-attachment: fixed;
+    color: var(--ink); font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased;
+  }
+  .display { font-family: 'Fraunces', Georgia, serif; }
+  #app { max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; padding-bottom: 40px; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  input, textarea { font-family: inherit; color: var(--ink); }
+  input:focus, textarea:focus, button:focus { outline: 2px solid var(--saffron); outline-offset: 1px; }
+  img { max-width: 100%; display: block; }
+  .field { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 15px; transition: border-color .15s ease; }
+  .field:focus { border-color: var(--saffron); }
+  .chip { border: 1px solid var(--line); padding: 7px 14px; border-radius: 999px; font-size: 13px; background: var(--card); color: var(--ink); white-space: nowrap; transition: all .15s ease; }
+  .chip.active { background: var(--saffron); border-color: var(--saffron); color: var(--chalk-on-accent); box-shadow: 0 3px 10px color-mix(in srgb, var(--saffron) 45%, transparent); }
+  .btn-primary { width: 100%; padding: 14px; border-radius: 12px; background: var(--saffron); color: var(--chalk-on-accent); font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 18px color-mix(in srgb, var(--saffron) 40%, transparent); transition: transform .12s ease, box-shadow .12s ease; }
+  .btn-primary:active { transform: scale(0.98); box-shadow: 0 3px 10px color-mix(in srgb, var(--saffron) 35%, transparent); }
+  .btn-primary:disabled { opacity: .4; }
+  .btn-ghost { width: 100%; padding: 12px; border-radius: 10px; border: 1px dashed var(--line); color: var(--ink); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; background: var(--card); }
+  .icon-btn { padding: 8px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; }
+  .card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+  .step-card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--line); box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+  .row { display: flex; align-items: center; }
+  .banner { border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-size: 12.5px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .banner.error { background: color-mix(in srgb, var(--clay) 18%, transparent); border: 1px solid var(--clay); }
+  .banner.info { background: color-mix(in srgb, var(--herb) 18%, transparent); border: 1px solid var(--herb); }
+  .fab { position: fixed; bottom: 24px; left: 50%; transform: translateX(calc(-50% + 190px)); display: flex; align-items: center; gap: 8px; padding: 15px 22px; border-radius: 999px; background: linear-gradient(135deg, var(--saffron), color-mix(in srgb, var(--saffron) 75%, #ff8a3d)); color: var(--chalk-on-accent); font-weight: 600; font-size: 14px; box-shadow: 0 10px 26px color-mix(in srgb, var(--saffron) 45%, transparent); transition: transform .12s ease; }
+  .fab:active { transform: translateX(calc(-50% + 190px)) scale(0.96); }
+  @media (max-width: 480px) { .fab { transform: none; right: 20px; left: auto; } .fab:active { transform: scale(0.96); } }
+  .search-wrap { position: relative; margin-bottom: 16px; }
+  .search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--ink-soft); pointer-events: none; }
+  .search-input { width: 100%; padding: 12px 14px 12px 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 14.5px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+  .search-input:focus { border-color: var(--saffron); }
+  .recipe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 3px 14px rgba(0,0,0,.06); text-align: left; transition: transform .12s ease, box-shadow .12s ease; }
+  .grid-card:active { transform: scale(0.97); }
+  .grid-thumb { position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--card-dim); display: flex; align-items: center; justify-content: center; }
+  .grid-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .cat-badge { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: rgba(20,20,20,.55); backdrop-filter: blur(3px); font-size: 9.5px; font-weight: 600; letter-spacing: .03em; color: #fff; text-transform: uppercase; }
+  .cat-dot { width: 6px; height: 6px; border-radius: 999px; flex-shrink: 0; }
+  .grid-info { padding: 10px 11px 12px; }
+  .grid-title { font-family: 'Fraunces', Georgia, serif; font-size: 14.5px; line-height: 1.25; margin: 0 0 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .grid-meta { font-size: 10.5px; color: var(--ink-soft); margin: 0; }
+
+  /* side drawer */
+  .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40; animation: drawerFade .2s ease; }
+  @keyframes drawerFade { from { opacity: 0 } to { opacity: 1 } }
+  .drawer-panel {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 80%; max-width: 300px; z-index: 41;
+    background: var(--card); box-shadow: 10px 0 30px rgba(0,0,0,.2);
+    padding: calc(env(safe-area-inset-top, 0px) + 22px) 0 24px;
+    overflow-y: auto; animation: drawerSlide .22s ease;
+  }
+  @keyframes drawerSlide { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+  .drawer-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px 20px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .drawer-item { display: flex; align-items: center; gap: 13px; padding: 14px 20px; font-size: 14.5px; color: var(--ink); width: 100%; text-align: left; }
+  .drawer-item:active { background: var(--card-dim); }
+  .drawer-section-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); padding: 18px 20px 4px; font-weight: 600; }
+  .drawer-cat-row { display: flex; align-items: center; gap: 10px; padding: 10px 20px 10px 38px; font-size: 13.5px; width: 100%; text-align: left; color: var(--ink); }
+  .drawer-cat-row.active { font-weight: 600; }
+  .drawer-cat-row:active { background: var(--card-dim); }
+  .theme-toggle-row { display: flex; gap: 8px; padding: 6px 20px 4px; }
+  .theme-opt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 12px; border: 1px solid var(--line); font-size: 11px; color: var(--ink-soft); }
+  .theme-opt.active { border-color: var(--saffron); color: var(--ink); background: var(--card-dim); }
+  .active-filter-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 14px; }
+
+  /* stories */
+  .swipe-hint { position: fixed; left: 20px; bottom: 24px; z-index: 6; display: flex; align-items: center; gap: 8px; padding: 14px 18px; border-radius: 999px; background: var(--card); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(0,0,0,.12); font-size: 13px; font-weight: 600; }
+  .swipe-hint:active { transform: scale(0.96); }
+  @media (max-width: 480px) { .swipe-hint { left: 20px; } }
+  .story-tray { display: flex; gap: 14px; overflow-x: auto; padding: 4px 20px 6px; }
+  .story-tray::-webkit-scrollbar { display: none; }
+  .story-avatar-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 68px; }
+  .story-avatar-ring { width: 62px; height: 62px; border-radius: 999px; padding: 2.5px; background: linear-gradient(135deg, var(--saffron), var(--clay)); display: flex; align-items: center; justify-content: center; }
+  .story-avatar-img { width: 100%; height: 100%; border-radius: 999px; overflow: hidden; border: 2px solid var(--bg); background: var(--card-dim); display: flex; align-items: center; justify-content: center; }
+  .story-avatar-img img { width: 100%; height: 100%; object-fit: cover; }
+  .story-avatar-name { font-size: 10.5px; color: var(--ink); text-align: center; max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .story-viewer { position: fixed; inset: 0; background: #000; z-index: 50; display: flex; flex-direction: column; }
+  .story-progress-row { display: flex; gap: 4px; padding: calc(env(safe-area-inset-top,0px) + 10px) 12px 0; }
+  .story-progress-seg { flex: 1; height: 3px; border-radius: 999px; background: rgba(255,255,255,.3); overflow: hidden; }
+  .story-progress-seg-fill { height: 100%; background: #fff; }
+  .story-tap-zone { position: absolute; top: 0; bottom: 0; width: 40%; z-index: 2; }
+
+  /* bottom tab bar */
+  .bottom-tabbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 480px; display: flex; align-items: center; justify-content: space-around; background: var(--card); border-top: 1px solid var(--line); padding: 9px 6px calc(env(safe-area-inset-bottom, 0px) + 8px); z-index: 15; box-shadow: 0 -4px 16px rgba(0,0,0,.06); }
+  .tab-item { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--ink-soft); font-size: 9.5px; padding: 4px 8px; }
+  .tab-item.active { color: var(--saffron); }
+  .tab-item-plus { width: 48px; height: 48px; border-radius: 999px; background: var(--saffron); color: var(--chalk-on-accent); display: flex; align-items: center; justify-content: center; margin-top: -24px; box-shadow: 0 6px 16px color-mix(in srgb, var(--saffron) 45%, transparent); }
+  .tab-item-plus:active { transform: scale(0.95); }
+
+  /* profile */
+  .profile-avatar-lg { width: 84px; height: 84px; border-radius: 999px; overflow: hidden; background: var(--card-dim); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 3px solid var(--card); box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+  .profile-avatar-lg img { width: 100%; height: 100%; object-fit: cover; }
+  .profile-stat { display: flex; flex-direction: column; align-items: center; flex: 1; }
+  .profile-stat b { font-size: 17px; font-family: 'Fraunces', Georgia, serif; }
+  .profile-stat span { font-size: 11px; color: var(--ink-soft); }
+  .exclusive-badge { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; background: rgba(20,20,20,.6); backdrop-filter: blur(3px); color: #fff; font-size: 9.5px; font-weight: 600; }
+  .locked-box { text-align: center; padding: 50px 24px; color: var(--ink-soft); }
+
+  /* shopping list */
+  .shop-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .shop-check { width: 22px; height: 22px; border-radius: 999px; border: 2px solid var(--line); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .shop-check.checked { background: var(--herb); border-color: var(--herb); color: #fff; }
+  .shop-text { flex: 1; min-width: 0; }
+  .shop-text .note { font-size: 14px; }
+  .shop-text .note.checked { text-decoration: line-through; color: var(--ink-soft); }
+  .shop-text .from { font-size: 10.5px; color: var(--ink-soft); }
+  .scroll-x { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .scroll-x::-webkit-scrollbar { display: none; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .5 } }
+  .ringing { animation: pulse 1s ease-in-out infinite; }
+  .timer-ring-progress { transition: stroke-dashoffset 1s linear; }
+
+  /* presentation mode */
+  .pz-root { position: fixed; inset: 0; background: var(--bg); z-index: 10; display: flex; flex-direction: column; }
+  .pz-topbar { display: flex; align-items: center; justify-content: space-between; padding: env(safe-area-inset-top, 14px) 16px 10px; padding-top: calc(env(safe-area-inset-top, 0px) + 14px); gap: 10px; }
+  .pz-progress { display: flex; gap: 4px; padding: 0 16px 10px; }
+  .pz-progress-seg { flex: 1; height: 3px; border-radius: 999px; background: var(--line); overflow: hidden; }
+  .pz-progress-seg.done, .pz-progress-seg.current { background: var(--saffron); }
+  .pz-body { flex: 1; overflow-y: auto; padding: 0 22px 24px; }
+  .pz-navbar { display: flex; align-items: center; gap: 10px; padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 14px); border-top: 1px solid var(--line); background: var(--bg); }
+  .pz-nav-btn { flex: 1; padding: 14px; border-radius: 12px; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .pz-nav-btn.next { background: var(--saffron); color: var(--chalk-on-accent); }
+  .pz-nav-btn.back { background: var(--card); color: var(--ink); }
+  .pz-nav-btn:disabled { opacity: .35; }
+  .pz-stepnum { font-family: 'Fraunces', Georgia, serif; font-size: 15px; color: var(--herb); letter-spacing: .02em; }
+  .pz-stepbig { font-family: 'Fraunces', Georgia, serif; font-size: 64px; line-height: 1; color: var(--saffron); opacity: .28; margin: 6px 0 -14px; }
+  .pz-slide-in { animation: pzIn .28s ease; }
+  @keyframes pzIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .pz-hero { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 18px; background: var(--card-dim); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+  .pz-ring-jump { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 10px); left: 50%; transform: translateX(-50%); z-index: 20; background: var(--clay); color: #fff; padding: 8px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 600; box-shadow: 0 6px 16px rgba(0,0,0,.3); }
+  .pz-center { text-align: center; display: flex; flex-direction: column; align-items: center; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ---------------- firebase ---------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyCVlb_u0zx7qCBGOzCGP4xNZ9nptCGX50w",
+  authDomain: "team-cook-ed59d.firebaseapp.com",
+  projectId: "team-cook-ed59d",
+  storageBucket: "team-cook-ed59d.firebasestorage.app",
+  messagingSenderId: "913809001914",
+  appId: "1:913809001914:web:64f304ab1def2a4abb6183"
+};
+firebase.initializeApp(firebaseConfig);
+const fdb = firebase.firestore();
+const fauth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+const GOOGLE_CLIENT_ID = "913809001914-u3ebjj43kbkmuf9gv55lppbdlkg35gk4.apps.googleusercontent.com";
+let currentUid = null;
+
+function handleGoogleCredential(response) {
+  banner = null;
+  const cred = firebase.auth.GoogleAuthProvider.credential(response.credential);
+  fauth.signInWithCredential(cred).catch((e) => {
+    console.error("signInWithCredential failed", e);
+    banner = { type: "error", text: "Accesso con Google non riuscito (" + e.code + ")." };
+    renderCurrent();
+  });
+}
+
+/* ---------------- utilities ---------------- */
+const ICONS = {
+  sun: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>',
+  moon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+  plus: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  chef: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/><line x1="6" y1="17" x2="18" y2="17"/></svg>',
+  clock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  check: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
+  pause: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>',
+  reset: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+  trash: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+  image: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+  logout: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+  back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+  alarm: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="M22 6 19 3"/></svg>',
+  search: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  filter: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>',
+  edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>',
+  database: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
+  cart: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>',
+  clock2: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  gauge: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14 15 9"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>',
+  calendarDays: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  minus: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  upload: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+  download: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  heart: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>',
+  heartFilled: '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>',
+  thumb: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>',
+  thumbFilled: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 10v12H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/><path d="M9.5 22h8a2 2 0 0 0 1.95-1.57l2.34-8A2 2 0 0 0 19.83 10H14l1-4.12A3.13 3.13 0 0 0 12 2L8.55 8.89A2 2 0 0 1 6.76 10H7v10.5A1.5 1.5 0 0 0 8.5 22Z"/></svg>',
+  menu: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>',
+  chevronDown: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+  camera: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>',
+  chevronLeft: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+  chevronRight: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+  person: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  lock: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  gear: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>',
+};
+
+const MASTER_INGREDIENTS = [
+  "Acciughe sotto sale","Aceto balsamico","Aceto balsamico bianco","Aceto balsamico invecchiato","Aceto di lampone",
+  "Aceto di lamponi","Aceto di mele","Aceto di riso","Aceto di vino","Acqua","Agar agar","Aglio","Aglio nero",
+  "Aglio orsino","Aglio rosso di Sulmona","Agnello","Agnello (costolette)","Albicocca","Albicocche disidratate",
+  "Albicocche secche","Albume d'uovo","Alette di pollo","Alga dulse","Alga kombu","Alghe nori","Ali di pollo","Alici",
+  "Alloro","Amarena","Amaretti","Amaretto (liquore)","Amido di mais","Amido di riso","Anacardi","Ananas",
+  "Ananas disidratato","Anatra","Aneto","Anguilla","Anice stellato","Arachidi","Aragosta","Arancia","Aringa","Arista",
+  "Asiago","Asparagi","Astice","Avena","Avocado","Baba ganoush","Baccalà","Bacche di ginepro","Bagna cauda","Banana",
+  "Barbabietola","Basilico","Basilico genovese","Basilico thai","Besciamella","Biancostato","Bicarbonato di sodio",
+  "Bietole","Biscotti secchi","Borlotti (fagioli)","Bottarga","Bra","Brandy","Branzino","Bresaola",
+  "Bresaola della Valtellina","Brie","Broccoletti","Broccoli","Broccolo romanesco","Brodo","Brodo di carne",
+  "Brodo vegetale","Bufala (carne)","Bulgur","Burrata","Burrata affumicata","Burrata pugliese","Burro",
+  "Burro chiarificato","Burro di arachidi","Burro di mandorle","Cacao amaro","Cacao in polvere zuccherato","Cachi",
+  "Caciocavallo","Caciotta","Caffè","Caffè espresso","Caffè in polvere","Calamari","Camembert","Camomilla",
+  "Camomilla fresca","Cannella","Cannella in stecche","Cannolicchi","Capesante","Capocollo","Capocollo di maiale",
+  "Cappello del prete","Capperi","Capretto","Carambola","Caramello","Carciofo","Cardamomo","Cardamomo nero",
+  "Cardamomo verde","Cardo","Carne macinata","Carne salada","Carota","Carote","Carote baby","Carote viola","Carpa",
+  "Casatella","Castagne","Castagne secche","Castelmagno","Cavoletti di Bruxelles","Cavolfiore","Cavolo",
+  "Cavolo cappuccio","Cavolo cinese","Cavolo nero","Cavolo rapa","Cavolo verza","Ceci","Cedro candito","Cerfoglio",
+  "Cervo","Cetriolo","Cheddar","Chiodi di garofano","Chorizo","Chutney di mango","Chutney di mele","Cicerchie",
+  "Cicoria","Ciliegia","Cinghiale","Cioccolato al latte","Cioccolato bianco","Cioccolato fondente","Cipolla",
+  "Cipolla bianca","Cipolla di Tropea","Cipolla dorata","Cipolla rossa","Cipolle caramellate","Cipolline borettane",
+  "Cipollotto","Clementina","Cocco (latte)","Cocco essiccato a scaglie","Cocco rapé","Cocomero","Coda di bue",
+  "Cointreau","Colatura di alici","Colla di pesce","Colorante alimentare","Confettura di more","Confettura di pesche",
+  "Confettura extra","Coniglio","Coniglio a pezzi","Coppa","Corbezzolo","Coriandolo","Coscia d'anatra",
+  "Coscia di pollo","Coscia di tacchino","Coscio di pollo","Cotechino","Cotenna","Cotto arrosto","Cous cous","Cozze",
+  "Cracker","Cranberries essiccati","Crema di funghi","Crema di nocciole","Crema di nocciole bianca",
+  "Crema di pistacchio","Crema di tartufo","Crema di zucca","Cremor tartaro","Croccante","Culatello","Cumino",
+  "Cumino dei prati","Cuore","Curcuma","Curcuma fresca","Curry (spezie)","Dashi","Datteri Medjoul","Dattero",
+  "Doubanjiang","Dragon fruit","Dragoncello","Edam","Edamame","Emmental","Entrecôte","Erba cipollina",
+  "Erba cipollina fresca","Erbe aromatiche miste","Eritritolo","Estratto di vaniglia","Fagioli azuki",
+  "Fagioli cannellini","Fagioli di Spagna","Fagioli neri","Fagioli rossi","Fagiolini","Faraona","Farfalle","Farina",
+  "Farina 0","Farina 00","Farina di avena","Farina di castagne","Farina di ceci","Farina di cocco","Farina di farro",
+  "Farina di grano saraceno","Farina di lupini","Farina di mais","Farina di mandorle","Farina di nocciole",
+  "Farina di piselli","Farina di riso","Farina di segale","Farina integrale","Farina Manitoba","Farina per pizza",
+  "Farro","Farro perlato","Fave","Fave secche","Fecola di patate","Fegato","Fegato d'anatra","Feta",
+  "Fette biscottate","Fichi secchi","Fico","Fico d'India","Filetto di maiale","Filetto di pollo","Finocchi",
+  "Fiocchi d'avena","Fiocco di maiale","Fior di latte","Fior di sale","Fiordilatte","Fiorentina","Fiori di zucca",
+  "Fiori eduli","Foie gras","Fontina","Formaggio","Formaggio affumicato","Formaggio di capra","Formaggio di malga",
+  "Formaggio erborinato","Formaggio filante","Formaggio grattugiato misto","Formaggio spalmabile",
+  "Formaggio spalmabile light","Fragole","Friarielli","Frutta candita","Frutti di bosco","Frutto della passione",
+  "Funghi","Funghi cardoncelli","Funghi champignon","Funghi chiodini","Funghi ostrica","Funghi pioppini",
+  "Funghi porcini","Funghi shiitake","Funghi trombetta","Furikake","Fusi di pollo","Fusilli","Gamberetti","Gamberi",
+  "Gamberoni","Garum","Gelatina di frutta","Gelatina in fogli","Germogli di soia","Germogli misti","Ghee","Ghiaccio",
+  "Gnocchi","Gocce di cioccolato","Gochujang","Gorgonzola","Gouda","Grana Padano","Granchio","Grano saraceno",
+  "Grappa","Grissini","Groviera","Guacamole","Guanciale","Guanciale amatriciano","Guanciale stagionato","Guava",
+  "Halibut","Halloumi","Hamburger (carne)","Harissa","Hummus","Indivia","Insalata belga","Insalata riccia",
+  "Insalata trevisana","Involtini primavera (sfoglia)","Issopo","Jalapeño","Katsuobushi","Kefir","Ketchup","Kiwi",
+  "Lampone","Lardo","Lasagne (sfoglie)","Latte","Latte condensato","Latte d'avena senza zucchero","Latte di avena",
+  "Latte di cocco","Latte di mandorla","Latte di riso","Latte di soia","Latte fresco intero","Latte in polvere",
+  "Latte parzialmente scremato","Latte scremato","Latticello","Lattuga","Lattuga iceberg","Lattuga Lollo",
+  "Lattuga romana","Lemongrass","Lenticchie","Lepre","Levistico","Lievito di birra","Lievito madre",
+  "Lievito per dolci","Lime","Limone","Lingua","Linguine","Litchi","Luccio","Lupini","Maggiorana","Maiale (carne)",
+  "Maiale (costine)","Maiale (filetto)","Maiale (lonza)","Maiale (macinato)","Maiale (pancetta)","Maionese","Mais",
+  "Maizena","Malto","Mandarino","Mandorle","Mandorle a lamelle","Mandorle in polvere","Mandorle pelate","Mango",
+  "Mango disidratato","Manzo (bistecca)","Manzo (carne)","Manzo (controfiletto)","Manzo (costata)","Manzo (fesa)",
+  "Manzo (filetto)","Manzo (girello)","Manzo (macinato)","Manzo (spezzatino)","Margarina","Marmellata",
+  "Marmellata di albicocche","Marmellata di fragole","Marzapane","Mascarpone","Mela","Mela Golden","Mela Renetta",
+  "Melanzane","Melanzane bianche","Melanzane viola","Melissa","Melograno","Melone","Menta","Menta piperita",
+  "Merluzzo","Miele","Miele di acacia","Miele di castagno","Miele di eucalipto","Miele millefiori","Miglio",
+  "Mirabella","Mirin","Mirtilli","Mirtillo rosso","Miso","Montasio","Mora","Mortadella","Moscardini","Mozzarella",
+  "Mozzarella di bufala","Nasello","Nduja","Nduja calabrese","Nespola","Nocciole","Nocciole tritate","Noce moscata",
+  "Noci","Noci del Brasile","Noci di macadamia","Noci macadamia","Noci pecan","Noodles","Nutella","Oca",
+  "Olio al peperoncino","Olio al tartufo","Olio aromatizzato al limone","Olio d'oliva","Olio di arachidi",
+  "Olio di cocco","Olio di girasole","Olio di semi","Olio di sesamo","Olio di vinaccioli","Olio extravergine d'oliva",
+  "Olive","Olive nere","Olive verdi","Orata","Orecchiette","Origano","Orzo","Orzo perlato","Ostriche","Pan carré",
+  "Pancetta","Pancetta affumicata","Pancetta arrotolata","Pancetta stesa","Pane","Pane carasau","Pane in cassetta",
+  "Pane pita","Pane raffermo","Paneer","Pangrattato","Panko","Panna","Panna acida","Panna acida light",
+  "Panna da cucina","Panna fresca","Panna montata","Panna vegetale","Papaya","Paprika","Paprika affumicata",
+  "Parmigiano","Passata","Passata di pomodoro","Pasta all'uovo","Pasta brisée","Pasta corta","Pasta di acciughe",
+  "Pasta di peperoncino","Pasta frolla","Pasta lunga","Pasta per gyoza","Pasta sfoglia","Pastrami",
+  "Pastrami di manzo","Patata","Patate","Patate americane","Patate dolci (batata)","Patate novelle","Patate viola",
+  "Pecorino","Pecorino romano","Pecorino sardo","Pecorino toscano","Pectina","Penne","Pepe","Pepe bianco",
+  "Pepe di Sichuan","Pepe nero","Pepe rosa","Peperoncini piccanti misti","Peperoncino","Peperoncino calabrese",
+  "Peperoncino chipotle","Peperoncino habanero","Peperoncino jalapeño","Peperoncino scotch bonnet","Peperone giallo",
+  "Peperone rosso","Peperone verde","Peperoni","Peperoni cruschi","Pere","Pesca","Pesca noce","Pesce persico",
+  "Pesce spada","Pesce spada affumicato","Pesto","Pesto alla siciliana","Pesto rosso","Petto d'anatra",
+  "Petto di pollo","Petto di pollo con pelle","Petto di tacchino","Philadelphia","Piadina","Piave","Picanha",
+  "Piccione","Pinoli","Pinoli tostati","Piselli","Piselli secchi","Pistacchi","Pistacchi sgusciati","Plantano",
+  "Polenta","Polpettone (carne)","Polpo","Pomodori","Pomodori canditi","Pomodori confit","Pomodori gialli",
+  "Pomodori secchi","Pomodori verdi","Pomodorini","Pomodoro","Pomodoro ciliegino","Pomodoro cuore di bue",
+  "Pomodoro datterino","Pomodoro pelati","Pomodoro ramato","Pomodoro San Marzano","Pompelmo","Porchetta",
+  "Porcini secchi","Porri","Praline","Prezzemolo","Prezzemolo riccio","Prosciutto affumicato","Prosciutto cotto",
+  "Prosciutto crudo","Prosciutto di Parma","Prosciutto San Daniele","Proteine di soia","Provola","Provolone","Prugna",
+  "Prugna secca","Prugne secche denocciolate","Punta di petto (brisket)","Puntarelle","Puntine di maiale","Quaglia",
+  "Quinoa","Rabarbaro","Radicchio","Rafano","Ragù alla bolognese","Rapa","Rapa rossa","Raschera","Ravanelli",
+  "Ravioli","Reale di manzo","Ribes","Ricci di mare","Ricotta","Ricotta affumicata","Ricotta di bufala",
+  "Ricotta forte","Ricotta salata","Rigatoni","Riso","Riso basmati","Riso Carnaroli","Robiola","Rognone","Rombo",
+  "Roquefort","Rosmarino","Rucola","Rum","Sake","Salame","Salame felino","Salame Milano","Salame Napoli","Sale",
+  "Sale affumicato","Sale fino","Sale grosso","Sale rosa dell'Himalaya","Salmone","Salmone affumicato",
+  "Salsa agrodolce","Salsa al pepe verde","Salsa barbecue","Salsa BBQ","Salsa BBQ piccante","Salsa bernese",
+  "Salsa chimichurri","Salsa cocktail","Salsa di ostriche","Salsa di pesce","Salsa di soia","Salsa hoisin",
+  "Salsa olandese","Salsa piccante","Salsa rosa","Salsa tamari","Salsa teriyaki","Salsa tzatziki","Salsa verde",
+  "Salsa worcester","Salsa Worcestershire","Salsa XO","Salsiccia","Salsiccia di cinghiale","Salsiccia luganega",
+  "Salsiccia piccante","Salvia","Santoreggia","Sarde","Sardine","Savoiardi","Scalogno","Scalogno rosso","Scamorza",
+  "Scampi","Scarola","Sciroppo d'acero","Sciroppo d'agave","Sciroppo di glucosio","Scorza d'arancia candita",
+  "Scorza di limone candita","Sedano","Sedano rapa","Seitan","Selvaggina","Semi di canapa",
+  "Semi di canapa decorticati","Semi di chia","Semi di girasole","Semi di lino","Semi di nigella","Semi di papavero",
+  "Semi di sesamo","Semi di zucca","Semi di zucca tostati","Semola di grano duro","Semolino","Senape",
+  "Senape di Digione","Seppia","Sgombro","Skirt steak","Skyr","Sogliola","Soia gialla","Songino","Soppressata",
+  "Sottofiletto di pollo","Sovracoscia di pollo","Spaghetti","Spaghetti di soia","Spalla di maiale","Speck",
+  "Speck alto adige","Spezie miste","Spinaci","Squacquerone","Stevia","Stinco di maiale","Stracchino",
+  "Stracciatella (formaggio)","Strutto","Struzzo","Sugo all'arrabbiata","Sugo alla puttanesca","Surimi","Susina",
+  "Taccole","Tagliatelle","Tahin (crema di sesamo)","Tahina","Taleggio","Tapenade","Tartare (carne)","Tartufo bianco",
+  "Tartufo nero","Tempeh","Testina","Tilapia","Timo","Tofu","Toma piemontese","Tomahawk","Tonno","Tonno fresco",
+  "Tonno sott'olio","Topinambur","Torrone","Tortellini","Tortilla di grano","Tortilla di mais","Tortillas","Totani",
+  "Trippa","Trippa alla romana","Trofie","Trota","Tuorlo d'uovo","Tè nero","Tè verde","Té matcha","Uova",
+  "Uova di quaglia","Uovo","Uva","Uvetta","Uvetta di Corinto","Uvetta sultanina","Valeriana","Vaniglia",
+  "Vaniglia (baccello)","Verbena","Vermicelli di riso","Verza","Vino bianco","Vino Marsala","Vino porto","Vino rosso",
+  "Vitello","Vitello (ossobuco)","Vitello (scaloppine)","Vongole","Wafer","Wakame","Wasabi","Whisky",
+  "Wonton (sfoglia)","Wurstel","Würstel di pollo","Xilitolo","Yogurt","Yogurt alla greca 0%","Yogurt bianco",
+  "Yogurt di cocco","Yogurt di soia","Yogurt greco","Yogurt intero","Yogurt magro","Zafferano","Zampone","Zenzero",
+  "Zenzero fresco","Zucca","Zucca butternut","Zucca mantovana","Zucchero","Zucchero a velo","Zucchero di canna",
+  "Zucchero di cocco","Zucchero muscovado","Zucchina","Zucchine","Zucchine trombetta",
+];
+
+const KCAL_PER_100G = {
+  "Acciughe":131,"Aceto":19,"Aceto balsamico":88,"Aceto di mele":21,"Aceto di vino":19,"Acqua":0,"Aglio":149,
+  "Agnello":294,"Albicocca":48,"Albume d'uovo":52,"Alici":131,"Amido di mais":355,"Anacardi":553,"Ananas":50,
+  "Anatra":337,"Arachidi":567,"Arancia":47,"Aringa":158,"Asparagi":20,"Avena":389,"Avocado":160,"Baccalà":80,
+  "Banana":89,"Basilico":23,"Besciamella":120,"Bietole":19,"Biscotti secchi":430,"Borlotti (fagioli)":127,
+  "Broccoli":34,"Brodo":10,"Brodo di carne":10,"Brodo vegetale":8,"Bulgur":342,"Burrata":330,"Burro":717,
+  "Cacao amaro":228,"Cannella":247,"Capperi":23,"Cardamomo":311,"Carne macinata":250,"Carota":41,"Carote":41,
+  "Castagne":213,"Cavolfiore":25,"Cavolo":25,"Cavolo cappuccio":25,"Cavolo cinese":13,"Cavolo nero":32,"Ceci":164,
+  "Cetriolo":15,"Cheddar":403,"Chiodi di garofano":274,"Ciliegia":63,"Cioccolato al latte":535,
+  "Cioccolato bianco":539,"Cioccolato fondente":546,"Cipolla":40,"Cipolla rossa":40,"Cipollotto":32,"Clementina":47,
+  "Cocco (latte)":230,"Cocomero":30,"Colla di pesce":335,"Coniglio":173,"Coriandolo":23,"Cous cous":112,"Cozze":86,
+  "Crema di nocciole":539,"Cumino":375,"Curry (spezie)":325,"Dattero":282,"Edamame":122,"Erba cipollina":30,
+  "Fagioli":127,"Fagioli cannellini":130,"Fagioli neri":132,"Fagioli rossi":127,"Farina":340,"Farina 00":340,
+  "Farina di mais":365,"Farina di riso":366,"Farina integrale":340,"Farro":340,"Fecola di patate":357,"Fegato":135,
+  "Feta":264,"Fico":74,"Finocchi":31,"Fiocchi d'avena":389,"Formaggio":350,"Formaggio filante":300,
+  "Formaggio spalmabile":245,"Fragole":32,"Frutti di bosco":43,"Funghi":25,"Funghi champignon":22,"Funghi porcini":34,
+  "Fusilli":158,"Gamberetti":85,"Gamberi":85,"Gamberoni":90,"Gorgonzola":330,"Grana Padano":392,"Groviera":413,
+  "Guacamole":160,"Guanciale":430,"Guanciale stagionato":430,"Hummus":166,"Ketchup":101,"Kiwi":61,"Latte":42,
+  "Latte scremato":35,"Latticello":40,"Lattuga":15,"Lemongrass":99,"Lenticchie":116,"Lievito di birra":105,
+  "Lievito per dolci":280,"Lime":30,"Limone":29,"Maggiorana":271,"Maiale (carne)":242,"Maiale (filetto)":143,
+  "Maiale (lonza)":143,"Maiale (macinato)":263,"Maionese":680,"Mais":86,"Maizena":355,"Mandarino":53,"Mandorle":579,
+  "Mango":60,"Manzo (bistecca)":271,"Manzo (carne)":250,"Manzo (filetto)":201,"Manzo (macinato)":250,"Margarina":717,
+  "Mascarpone":450,"Mascarpone light":280,"Mela":52,"Melanzane":25,"Melograno":83,"Melone":34,"Menta":44,
+  "Merluzzo":82,"Miele":304,"Mirin":225,"Mirtilli":57,"Mozzarella":280,"Mozzarella di bufala":288,"Nasello":82,
+  "Nocciole":628,"Noce moscata":525,"Noci":654,"Noci pecan":691,"Noodles":138,"Nutella":539,"Olio d'oliva":884,
+  "Olio di arachidi":884,"Olio di cocco":862,"Olio di girasole":884,"Olio di semi":884,"Olio di sesamo":884,
+  "Olio extravergine d'oliva":884,"Olive":130,"Olive nere":115,"Olive verdi":145,"Origano":265,"Ostriche":68,
+  "Pancetta":541,"Pancetta affumicata":541,"Pane":265,"Pane raffermo":265,"Pangrattato":395,"Panna":337,
+  "Panna acida":198,"Panna fresca":337,"Papaya":43,"Paprika":282,"Paprika affumicata":282,"Parmigiano":392,
+  "Passata":27,"Passata di pomodoro":27,"Pasta all'uovo":280,"Pasta corta":158,"Pasta lunga":158,"Patate":80,
+  "Patate dolci (batata)":85,"Pecorino":387,"Pecorino romano":387,"Penne":158,"Pepe":251,"Pepe nero":251,
+  "Peperoncino":40,"Peperoni":20,"Pere":57,"Pesca":39,"Pesce spada":109,"Pesto":450,"Petto di pollo":165,
+  "Petto di tacchino":135,"Pinoli":673,"Piselli":81,"Pistacchi":560,"Polenta":70,"Polpo":82,"Pomodori":18,
+  "Pomodori secchi":258,"Pomodorini":18,"Pomodoro":18,"Pompelmo":42,"Porri":29,"Prezzemolo":36,"Prosciutto cotto":145,
+  "Prosciutto crudo":268,"Provola":290,"Prugna":46,"Quinoa":368,"Rafano":48,"Ravanelli":16,"Ricotta":146,
+  "Ricotta salata":280,"Riso":332,"Riso basmati":350,"Riso Carnaroli":332,"Riso cotto":130,"Robiola":280,
+  "Rosmarino":131,"Rucola":25,"Salame":425,"Salmone":208,"Salmone affumicato":117,"Salsa BBQ":172,"Salsa di soia":53,
+  "Salsa Worcestershire":78,"Salsiccia":325,"Salvia":315,"Scalogno":72,"Sedano":16,"Sedano rapa":25,"Seitan":370,
+  "Semi di sesamo":573,"Semi di zucca":446,"Senape":66,"Senape di Digione":66,"Spaghetti":158,"Speck":298,
+  "Spezie miste":280,"Spinaci":23,"Stracchino":290,"Susina":46,"Tacchino":189,"Tahin (crema di sesamo)":595,
+  "Tahina":595,"Tempeh":192,"Timo":101,"Tofu":76,"Tonno fresco":132,"Tonno sott'olio":189,"Tuorlo d'uovo":322,
+  "Té matcha":3,"Uova":155,"Uovo":155,"Uva":69,"Uvetta":299,"Vaniglia":288,"Verza":27,"Vino bianco":82,
+  "Vino rosso":85,"Vongole":72,"Wurstel":265,"Yogurt bianco":61,"Yogurt greco":97,"Yogurt greco 0%":55,
+  "Zafferano":310,"Zenzero":80,"Zucca":26,"Zucchero":387,"Zucchero a velo":389,"Zucchero di canna":380,"Zucchine":17,
+};
+const KCAL_DEFAULT = 90;
+
+const CATEGORIES = [
+  { key: "antipasti", label: "Antipasti", color: "--herb" },
+  { key: "primi", label: "Primi", color: "--saffron" },
+  { key: "secondi", label: "Secondi", color: "--clay" },
+  { key: "contorni", label: "Contorni", color: "--teal" },
+  { key: "dolci", label: "Dolci", color: "--rose" },
+  { key: "colazione", label: "Colazione", color: "--mustard" },
+  { key: "etnica", label: "Etnica", color: "--plum" },
+];
+function catsOf(r) {
+  if (Array.isArray(r.categories) && r.categories.length) return r.categories;
+  if (r.category) return [r.category];
+  return [];
+}
+const ADMIN_EMAIL = "filippo.verlicchi@gmail.com";
+
+/* ---------------- calorie estimate ---------------- */
+const UNIT_WEIGHT_G = {
+  "uovo": 55, "uova": 55, "tuorlo d'uovo": 18, "albume d'uovo": 33,
+  "mela": 150, "pesca": 130, "arancia": 150, "limone": 90, "lime": 50,
+  "banana": 120, "cipolla": 110, "cipolla rossa": 110, "scalogno": 25,
+  "pomodoro": 120, "pomodorino": 15, "patata": 150, "zucchina": 200,
+  "carota": 70, "melanzana": 250, "peperone": 150, "spicchio d'aglio": 5,
+  "aglio": 5, "mandarino": 60, "clementina": 60, "kiwi": 70, "avocado": 200,
+  "fetta di pane": 30, "fetta": 30,
+};
+function parseGramsFromNote(note, canonicalName) {
+  if (!note) return 0;
+  const txt = note.toLowerCase().replace(",", ".");
+  let m = txt.match(/(\d+(?:\.\d+)?)\s*(kg|chil)/);
+  if (m) return parseFloat(m[1]) * 1000;
+  m = txt.match(/(\d+(?:\.\d+)?)\s*(g|gr|grammi)\b/);
+  if (m) return parseFloat(m[1]);
+  m = txt.match(/(\d+(?:\.\d+)?)\s*(l|lt|litri)\b/);
+  if (m) return parseFloat(m[1]) * 1000;
+  m = txt.match(/(\d+(?:\.\d+)?)\s*(ml|cl)\b/);
+  if (m) return parseFloat(m[1]) * (txt.includes("cl") ? 10 : 1);
+  m = txt.match(/^(\d+(?:\.\d+)?)\b/);
+  if (m) {
+    const count = parseFloat(m[1]);
+    const key = (canonicalName || "").toLowerCase();
+    const unit = UNIT_WEIGHT_G[key] || 50;
+    return count * unit;
+  }
+  return 0;
+}
+function scaleNote(note, factor) {
+  if (!note || factor === 1) return note;
+  const m = note.match(/^(\d+(?:[.,]\d+)?)(\s*)(.*)$/);
+  if (!m) return note;
+  const num = parseFloat(m[1].replace(",", "."));
+  let scaled = num * factor;
+  scaled = scaled >= 10 ? Math.round(scaled) : Math.round(scaled * 10) / 10;
+  const numStr = Number.isInteger(scaled) ? String(scaled) : String(scaled).replace(".", ",");
+  return numStr + m[2] + m[3];
+}
+function estimateRecipeKcal(rec) {
+  let total = 0, countedItems = 0, totalItems = 0;
+  (rec.ingredients || []).forEach((ing) => {
+    if (typeof ing === "string") return;
+    totalItems++;
+    const grams = parseGramsFromNote(ing.note, ing.name);
+    if (grams <= 0) return;
+    const per100 = ing.name && KCAL_PER_100G[ing.name] !== undefined ? KCAL_PER_100G[ing.name] : KCAL_DEFAULT;
+    total += (grams / 100) * per100;
+    countedItems++;
+  });
+  if (countedItems === 0) return null;
+  return { total: Math.round(total), partial: countedItems < totalItems, countedItems, totalItems };
+}
+const FIT_THRESHOLD_TOTAL = 2000;
+function isFitRecipe(rec) {
+  const k = estimateRecipeKcal(rec);
+  return k && !k.partial && k.total <= FIT_THRESHOLD_TOTAL;
+}
+
+function rid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+/* ---------------- theme ---------------- */
+function getTheme() {
+  try { return localStorage.getItem("cucina_theme") || "auto"; } catch (e) { return "auto"; }
+}
+function applyTheme(theme) {
+  if (theme === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", theme);
+}
+function toggleTheme() {
+  const current = getTheme();
+  const systemDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const currentlyDark = current === "dark" || (current === "auto" && systemDark);
+  const next = currentlyDark ? "light" : "dark";
+  try { localStorage.setItem("cucina_theme", next); } catch (e) {}
+  applyTheme(next);
+  renderCurrent();
+}
+applyTheme(getTheme());
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") node.className = v;
+    else if (k === "html") node.innerHTML = v;
+    else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k === "style" && typeof v === "object") Object.assign(node.style, v);
+    else if (v !== null && v !== undefined) node.setAttribute(k, v);
+  }
+  (Array.isArray(children) ? children : [children]).forEach((c) => {
+    if (c === null || c === undefined) return;
+    node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  });
+  return node;
+}
+
+/* compress an image file client-side into a small base64 JPEG (no external storage needed) */
+function compressImage(file, maxDim, quality) {
+  maxDim = maxDim || 640; quality = quality || 0.6;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------------- alarm ---------------- */
+const alarmIntervals = {};
+let audioCtx = null;
+function unlockAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.01);
+}
+function beepOnce() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "sine"; osc.frequency.value = 880;
+  gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.35, audioCtx.currentTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.35);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+}
+function startAlarm(id) {
+  if (alarmIntervals[id]) return;
+  beepOnce();
+  alarmIntervals[id] = setInterval(beepOnce, 650);
+}
+function stopAlarm(id) {
+  clearInterval(alarmIntervals[id]);
+  delete alarmIntervals[id];
+}
+
+/* ---------------- state ---------------- */
+let AUTH_USER = null;
+let AUTH_PHOTO = null;
+let AUTH_EMAIL = null;
+let recipes = [];
+let myFavorites = [];
+let stories = [];
+let storyViewerIndex = null;
+const STORY_TTL = 24 * 60 * 60 * 1000;
+let myFollowing = [];
+let profileCache = {};
+let myExclusiveRecipes = [];
+let shoppingItems = [];
+let viewServings = null;
+let mealPlan = {};
+const PLAN_DAYS = [
+  { key: "lun", label: "Lunedì" }, { key: "mar", label: "Martedì" }, { key: "mer", label: "Mercoledì" },
+  { key: "gio", label: "Giovedì" }, { key: "ven", label: "Venerdì" }, { key: "sab", label: "Sabato" }, { key: "dom", label: "Domenica" },
+];
+let exclusiveDocCache = {};
+const MAX_EXCLUSIVE = 40;
+let route = { screen: "login", selectedId: null };
+let filter = "all";
+let drawerOpen = false;
+let drawerCatsExpanded = false;
+let searchQuery = "";
+let ingredientFilter = [];
+let banner = null;
+let draft = null;
+let editingRecipeId = null;
+let timers = {};
+let pendingWork = 0;
+
+const app = document.getElementById("app");
+
+/* ---------------- persistence ---------------- */
+function initFirebase() {
+  fauth.onAuthStateChanged((user) => {
+    if (user) {
+      currentUid = user.uid;
+      AUTH_USER = user.displayName || user.email || "Utente";
+      AUTH_PHOTO = user.photoURL || null;
+      AUTH_EMAIL = user.email || null;
+      if (route.screen === "login") route = { screen: "home", selectedId: null };
+      subscribeRecipes();
+      subscribeFavorites();
+      subscribeStories();
+      subscribeFollowing();
+      ensureProfileDoc();
+      subscribeMyExclusive();
+      subscribeShoppingList();
+      subscribeMealPlan();
+      render();
+    } else {
+      currentUid = null;
+      AUTH_USER = null;
+      AUTH_PHOTO = null;
+      AUTH_EMAIL = null;
+      myFavorites = [];
+      myFollowing = [];
+      profileCache = {};
+      myExclusiveRecipes = [];
+      exclusiveDocCache = {};
+      shoppingItems = [];
+      mealPlan = {};
+      route = { screen: "login", selectedId: null };
+      render();
+    }
+  });
+}
+
+function subscribeFavorites() {
+  fdb.collection("favorites").doc(currentUid).onSnapshot(
+    (doc) => {
+      myFavorites = (doc.exists && Array.isArray(doc.data().recipeIds)) ? doc.data().recipeIds : [];
+      renderCurrent();
+    },
+    (err) => console.error("favorites onSnapshot error", err)
+  );
+}
+
+function toggleFavorite(recipeId) {
+  const isFav = myFavorites.includes(recipeId);
+  const op = isFav ? firebase.firestore.FieldValue.arrayRemove(recipeId) : firebase.firestore.FieldValue.arrayUnion(recipeId);
+  fdb.collection("favorites").doc(currentUid).set({ recipeIds: op }, { merge: true }).catch((e) => console.error(e));
+}
+
+function toggleVote(rec) {
+  const votedBy = Array.isArray(rec.votedBy) ? rec.votedBy : [];
+  const hasVoted = votedBy.includes(currentUid);
+  const op = hasVoted ? firebase.firestore.FieldValue.arrayRemove(currentUid) : firebase.firestore.FieldValue.arrayUnion(currentUid);
+  fdb.collection("recipes").doc(rec.id).update({ votedBy: op }).catch((e) => console.error(e));
+}
+
+/* ---------------- shopping list ---------------- */
+function subscribeShoppingList() {
+  fdb.collection("shoppingLists").doc(currentUid).onSnapshot(
+    (doc) => {
+      shoppingItems = (doc.exists && Array.isArray(doc.data().items)) ? doc.data().items : [];
+      if (route.screen === "shopping") renderShoppingList();
+    },
+    (err) => console.error("shopping list onSnapshot error", err)
+  );
+}
+function saveShoppingList(items) {
+  fdb.collection("shoppingLists").doc(currentUid).set({ items }).catch((e) => console.error(e));
+}
+function formatGrams(g) {
+  if (g >= 1000) {
+    const kg = g / 1000;
+    return (Number.isInteger(kg) ? kg : kg.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")) + "kg";
+  }
+  return Math.round(g) + "g";
+}
+function addRecipeToShoppingList(rec) {
+  const items = [...shoppingItems];
+  let addedCount = 0;
+
+  (rec.ingredients || []).forEach((ing) => {
+    if (typeof ing === "string" || (!ing.name && !ing.note)) return;
+    const note = ing.note || ing.name;
+    const grams = ing.name ? parseGramsFromNote(note, ing.name) : 0;
+
+    if (ing.name && grams > 0) {
+      // sommabile: cerca una riga esistente con lo stesso ingrediente e unisci i grammi
+      const existing = items.find((i) => i.name === ing.name && i.grams > 0);
+      if (existing) {
+        existing.grams += grams;
+        if (!existing.recipes.includes(rec.name)) existing.recipes.push(rec.name);
+      } else {
+        items.push({ id: rid(), name: ing.name, grams, extraNotes: [], recipes: [rec.name], checked: false });
+      }
+      addedCount++;
+      return;
+    }
+
+    if (ing.name) {
+      // stesso ingrediente ma senza un peso leggibile: raggruppa come nota extra, non sommata
+      const existing = items.find((i) => i.name === ing.name);
+      if (existing) {
+        if (!existing.extraNotes.some((n) => n.note === note && n.recipeName === rec.name)) {
+          existing.extraNotes.push({ note, recipeName: rec.name });
+          addedCount++;
+        }
+      } else {
+        items.push({ id: rid(), name: ing.name, grams: 0, extraNotes: [{ note, recipeName: rec.name }], recipes: [rec.name], checked: false });
+        addedCount++;
+      }
+      return;
+    }
+
+    // nessun nome fisso: riga libera, non raggruppabile
+    const dup = items.some((i) => !i.name && i.note === note && i.recipeName === rec.name);
+    if (!dup) {
+      items.push({ id: rid(), name: "", note, recipeName: rec.name, checked: false });
+      addedCount++;
+    }
+  });
+
+  if (addedCount === 0) return 0;
+  saveShoppingList(items);
+  return addedCount;
+}
+function toggleShoppingItem(id) {
+  saveShoppingList(shoppingItems.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i)));
+}
+function removeShoppingItem(id) {
+  saveShoppingList(shoppingItems.filter((i) => i.id !== id));
+}
+function clearCheckedShoppingItems() {
+  saveShoppingList(shoppingItems.filter((i) => !i.checked));
+}
+function clearShoppingList() {
+  saveShoppingList([]);
+}
+
+/* ---------------- weekly meal plan ---------------- */
+function subscribeMealPlan() {
+  fdb.collection("mealPlans").doc(currentUid).onSnapshot(
+    (doc) => {
+      mealPlan = (doc.exists && doc.data().days) ? doc.data().days : {};
+      if (route.screen === "planner") renderPlanner();
+    },
+    (err) => console.error("meal plan onSnapshot error", err)
+  );
+}
+function saveMealPlan(days) {
+  fdb.collection("mealPlans").doc(currentUid).set({ days }).catch((e) => console.error(e));
+}
+function addToPlan(dayKey, recipeId) {
+  const days = { ...mealPlan };
+  const list = Array.isArray(days[dayKey]) ? [...days[dayKey]] : [];
+  if (!list.includes(recipeId)) list.push(recipeId);
+  days[dayKey] = list;
+  saveMealPlan(days);
+}
+function removeFromPlan(dayKey, recipeId) {
+  const days = { ...mealPlan };
+  days[dayKey] = (days[dayKey] || []).filter((id) => id !== recipeId);
+  saveMealPlan(days);
+}
+function clearMealPlan() {
+  saveMealPlan({});
+}
+
+/* ---------------- stories (24h) ---------------- */
+function subscribeStories() {
+  fdb.collection("stories").orderBy("createdAt", "desc").limit(200).onSnapshot(
+    (snap) => {
+      const now = Date.now();
+      stories = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((s) => now - s.createdAt < STORY_TTL);
+      snap.docs.forEach((d) => {
+        const s = d.data();
+        if (s.authorUid === currentUid && now - s.createdAt >= STORY_TTL) {
+          fdb.collection("stories").doc(d.id).delete().catch(() => {});
+        }
+      });
+      if (route.screen === "stories") renderStories();
+    },
+    (err) => console.error("stories onSnapshot error", err)
+  );
+}
+
+function publishStory(recipe, imageDataUrl) {
+  return fdb.collection("stories").add({
+    authorUid: currentUid,
+    authorName: AUTH_USER,
+    recipeId: recipe.id,
+    recipeName: recipe.name,
+    image: imageDataUrl,
+    createdAt: Date.now(),
+  });
+}
+
+function deleteStory(id) {
+  fdb.collection("stories").doc(id).delete().catch((e) => console.error(e));
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor(diff / 60000);
+  if (h >= 1) return h + "h fa";
+  if (m >= 1) return m + "m fa";
+  return "ora";
+}
+
+/* ---------------- profiles & follow ---------------- */
+function ensureProfileDoc() {
+  const ref = fdb.collection("profiles").doc(currentUid);
+  ref.get().then((doc) => {
+    if (!doc.exists) ref.set({ displayName: AUTH_USER, photoURL: AUTH_PHOTO || null });
+  }).catch((e) => console.error(e));
+}
+
+function subscribeFollowing() {
+  fdb.collection("follows").where("followerUid", "==", currentUid).onSnapshot(
+    (snap) => {
+      myFollowing = snap.docs.map((d) => d.data().targetUid);
+      renderCurrent();
+    },
+    (err) => console.error("follows onSnapshot error", err)
+  );
+}
+
+function followDocId(followerUid, targetUid) { return followerUid + "_" + targetUid; }
+
+function toggleFollow(targetUid) {
+  const id = followDocId(currentUid, targetUid);
+  if (myFollowing.includes(targetUid)) {
+    fdb.collection("follows").doc(id).delete().catch((e) => console.error(e));
+  } else {
+    fdb.collection("follows").doc(id).set({ followerUid: currentUid, targetUid, createdAt: Date.now() }).catch((e) => console.error(e));
+  }
+}
+
+function fetchProfile(uid, cb) {
+  if (profileCache[uid]) { cb(profileCache[uid]); return; }
+  fdb.collection("profiles").doc(uid).get().then((doc) => {
+    const data = doc.exists ? doc.data() : {};
+    profileCache[uid] = {
+      displayName: data.displayName || (uid === currentUid ? AUTH_USER : "Utente"),
+      photoURL: data.photoURL || null,
+    };
+    cb(profileCache[uid]);
+  }).catch((e) => { console.error(e); cb({ displayName: "Utente", photoURL: null }); });
+}
+
+function countFollowers(uid, cb) {
+  fdb.collection("follows").where("targetUid", "==", uid).get()
+    .then((snap) => cb(snap.size)).catch(() => cb(0));
+}
+function countFollowing(uid, cb) {
+  fdb.collection("follows").where("followerUid", "==", uid).get()
+    .then((snap) => cb(snap.size)).catch(() => cb(0));
+}
+
+function subscribeRecipes() {
+  const query = AUTH_EMAIL === ADMIN_EMAIL
+    ? fdb.collection("recipes").limit(300)
+    : fdb.collection("recipes").where("exclusive", "==", false).limit(300);
+  query.onSnapshot(
+    (snap) => {
+      recipes = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt);
+      if (route.screen === "home") renderHome();
+      if (route.screen === "favorites") renderFavorites();
+      if (route.screen === "detail") {
+        const still = getRecipeById(route.selectedId);
+        if (!still) { route = { screen: "home", selectedId: null }; render(); }
+        else renderDetail();
+      }
+    },
+    (err) => {
+      console.error("firestore onSnapshot error", err);
+      banner = { type: "error", text: "Sincronizzazione interrotta (" + err.code + ")." };
+      if (route.screen === "home") renderHome();
+    }
+  );
+}
+
+function subscribeMyExclusive() {
+  fdb.collection("recipes").where("authorUid", "==", currentUid).where("exclusive", "==", true).onSnapshot(
+    (snap) => {
+      myExclusiveRecipes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      myExclusiveRecipes.forEach((r) => { exclusiveDocCache[r.id] = r; });
+      if (route.screen === "profile" && (route.viewUid || currentUid) === currentUid) renderProfile();
+      if (route.screen === "create") updateSaveState();
+      if (route.screen === "detail" && exclusiveDocCache[route.selectedId]) renderDetail();
+    },
+    (err) => console.error("my-exclusive onSnapshot error", err)
+  );
+}
+
+function fetchExclusiveFor(uid, cb) {
+  fdb.collection("recipes").where("authorUid", "==", uid).where("exclusive", "==", true).get()
+    .then((snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      list.forEach((r) => { exclusiveDocCache[r.id] = r; });
+      cb(list);
+    })
+    .catch((e) => { console.error(e); cb([]); });
+}
+
+function getRecipeById(id) {
+  return recipes.find((r) => r.id === id) || exclusiveDocCache[id] || null;
+}
+
+/* ---------------- login ---------------- */
+function renderLogin() {
+  app.innerHTML = "";
+  const isDark = getTheme() === "dark" || (getTheme() === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const themeBtn = el("button", { class: "icon-btn", html: isDark ? ICONS.sun : ICONS.moon, style: { position: "fixed", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: "16px", color: "var(--ink-soft)" }, onclick: toggleTheme });
+  app.appendChild(themeBtn);
+  const wrap = el("div", { style: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 32px", textAlign: "center" } }, [
+    el("div", { html: ICONS.chef, style: { color: "var(--saffron)" } }),
+    el("h1", { class: "display", style: { fontSize: "28px", margin: "16px 0 2px" } }, "La Tua Cucina"),
+    el("p", { style: { fontSize: "13px", color: "var(--ink-soft)", marginBottom: "28px" } }, "Ricette, passo dopo passo"),
+  ]);
+  const box = el("div", { style: { width: "100%", maxWidth: "300px" } });
+  const bn = bannerNode();
+  if (bn) box.appendChild(bn);
+  const btnSlot = el("div", { style: { display: "flex", justifyContent: "center", marginBottom: "10px", minHeight: "44px" } }, [
+    el("span", { style: { fontSize: "12px", color: "var(--ink-soft)" } }, "Caricamento accesso Google…"),
+  ]);
+  box.appendChild(btnSlot);
+  const note = el("p", { style: { fontSize: "11px", color: "var(--ink-soft)", marginTop: "12px", opacity: .75 } },
+    "Resti connesso su questo dispositivo finché non esci.");
+  box.appendChild(note);
+  wrap.appendChild(box);
+  app.appendChild(wrap);
+
+  (function tryRenderGoogleButton(attempt) {
+    if (route.screen !== "login") return;
+    if (window.google && google.accounts && google.accounts.id) {
+      btnSlot.innerHTML = "";
+      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential, auto_select: false, itp_support: true });
+      google.accounts.id.renderButton(btnSlot, { theme: "outline", size: "large", width: 280, text: "signin_with", shape: "pill" });
+    } else if (attempt < 40) {
+      setTimeout(() => tryRenderGoogleButton(attempt + 1), 150);
+    } else {
+      btnSlot.innerHTML = "";
+      btnSlot.appendChild(el("span", { style: { fontSize: "12px", color: "var(--clay)" } }, "Accesso Google non disponibile: ricarica la pagina."));
+    }
+  })(0);
+}
+
+/* ---------------- header ---------------- */
+function header({ title, back, onBack }) {
+  const h = el("div", { class: "row", style: { justifyContent: "space-between", padding: "22px 20px 14px" } });
+  h.append(
+    el("button", { class: "icon-btn", html: ICONS.back, onclick: onBack }),
+    el("h2", { class: "display", style: { fontSize: "17px" } }, title || ""),
+    el("div", { style: { width: "22px" } })
+  );
+  return h;
+}
+
+function bannerNode() {
+  if (!banner) return null;
+  return el("div", { class: "banner " + banner.type }, [
+    el("span", {}, banner.text),
+    el("button", { style: { color: "var(--ink)", fontSize: "12px", textDecoration: "underline", flexShrink: 0 }, onclick: () => { banner = null; renderCurrent(); } }, "OK"),
+  ]);
+}
+
+function renderCurrent() {
+  const tb0 = document.getElementById("bottom-tabbar"); if (tb0) tb0.remove();
+  if (route.screen === "home") renderHome();
+  else if (route.screen === "detail") renderDetail();
+  else if (route.screen === "create") renderCreate();
+  else if (route.screen === "backup") renderBackup();
+  else if (route.screen === "favorites") renderFavorites();
+  else if (route.screen === "profile") renderProfile();
+  else if (route.screen === "profile-edit") renderProfileEdit();
+  else if (route.screen === "follow-list") renderFollowList();
+  else if (route.screen === "shopping") renderShoppingList();
+  else if (route.screen === "stories") renderStories();
+  else if (route.screen === "story-create") renderStoryCreate();
+  else renderLogin();
+}
+
+/* ---------------- home ---------------- */
+function recipeCard(r) {
+  const cats = catsOf(r).map((k) => CATEGORIES.find((c) => c.key === k)).filter(Boolean);
+  const card = el("div", { class: "grid-card" });
+  const clickWrap = el("div", { style: { cursor: "pointer" }, onclick: () => { timers = {}; viewServings = null; route = { screen: "detail", selectedId: r.id, step: -1 }; render(); } });
+  const thumb = el("div", { class: "grid-thumb" });
+  if (r.coverImage) thumb.appendChild(el("img", { src: r.coverImage, alt: r.name }));
+  else thumb.innerHTML = ICONS.chef;
+  if (cats.length && !r.exclusive) {
+    const label = cats.length > 1 ? cats[0].label + " +" + (cats.length - 1) : cats[0].label;
+    thumb.appendChild(el("div", { class: "cat-badge" }, [
+      el("span", { class: "cat-dot", style: { background: "var(" + cats[0].color + ")" } }),
+      label,
+    ]));
+  }
+  if (r.exclusive) {
+    thumb.appendChild(el("div", { class: "exclusive-badge" }, [el("span", { html: ICONS.lock }), "ESCLUSIVA"]));
+  }
+  if (isFitRecipe(r)) {
+    thumb.appendChild(el("div", { class: "exclusive-badge", style: { left: "auto", right: "8px", top: "auto", bottom: "8px", background: "var(--herb)" } }, "FIT"));
+  }
+  const isFav = myFavorites.includes(r.id);
+  const favBtn = el("button", {
+    html: isFav ? ICONS.heartFilled : ICONS.heart,
+    style: { position: "absolute", top: "8px", right: "8px", color: isFav ? "var(--clay)" : "#fff", background: "rgba(0,0,0,.4)", backdropFilter: "blur(3px)", borderRadius: "999px", padding: "6px" },
+    onclick: (e) => { e.stopPropagation(); toggleFavorite(r.id); },
+  });
+  thumb.style.position = "relative";
+  thumb.appendChild(favBtn);
+  const votedBy = Array.isArray(r.votedBy) ? r.votedBy : [];
+  const hasVoted = votedBy.includes(currentUid);
+  const voteBtn = el("button", {
+    class: "row", style: { gap: "4px", color: hasVoted ? "var(--saffron)" : "var(--ink-soft)", fontSize: "11px", fontWeight: 600 },
+    onclick: (e) => { e.stopPropagation(); toggleVote(r); },
+  }, [el("span", { html: hasVoted ? ICONS.thumbFilled : ICONS.thumb }), String(votedBy.length)]);
+  const info = el("div", { class: "grid-info" }, [
+    el("h3", { class: "grid-title" }, r.name),
+    el("div", { class: "row", style: { justifyContent: "space-between", alignItems: "center" } }, [
+      el("p", { class: "grid-meta" }, (r.steps || []).length + " passaggi" + (r.prepMinutes ? " · " + r.prepMinutes + " min" : "")),
+      voteBtn,
+    ]),
+  ]);
+  clickWrap.append(thumb, info);
+  card.appendChild(clickWrap);
+  return card;
+}
+
+function openIngredientFilterSheet() {
+  const existing = document.getElementById("ing-filter-sheet");
+  if (existing) existing.remove();
+
+  let tempSelection = [...ingredientFilter];
+  const backdrop = el("div", { class: "drawer-backdrop", id: "ing-filter-sheet" });
+  const panel = el("div", {
+    style: { position: "fixed", left: "50%", bottom: "0", transform: "translateX(-50%)", width: "100%", maxWidth: "480px", maxHeight: "75vh", background: "var(--card)", borderRadius: "18px 18px 0 0", zIndex: "41", display: "flex", flexDirection: "column", boxShadow: "0 -10px 30px rgba(0,0,0,.2)" },
+    onclick: (e) => e.stopPropagation(),
+  });
+  backdrop.addEventListener("click", () => backdrop.remove());
+
+  panel.appendChild(el("div", { style: { padding: "18px 20px 10px" } }, [
+    el("h3", { class: "display", style: { fontSize: "17px", margin: "0 0 12px" } }, "Filtra per ingredienti"),
+  ]));
+
+  const searchWrap = el("div", { class: "search-wrap", style: { margin: "0 20px 10px" } });
+  searchWrap.innerHTML = ICONS.search;
+  const q = el("input", { class: "search-input", placeholder: "Cerca ingrediente..." });
+  searchWrap.appendChild(q);
+  panel.appendChild(searchWrap);
+
+  const list = el("div", { style: { overflowY: "auto", flex: "1", padding: "0 20px" } });
+  panel.appendChild(list);
+
+  function renderList() {
+    list.innerHTML = "";
+    const query = q.value.trim().toLowerCase();
+    const items = MASTER_INGREDIENTS.filter((n) => !query || n.toLowerCase().includes(query));
+    if (items.length === 0) {
+      list.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", padding: "10px 0" } }, "Nessun ingrediente trovato."));
+      return;
+    }
+    items.forEach((name) => {
+      const active = tempSelection.includes(name);
+      const row = el("button", { class: "row", style: { justifyContent: "space-between", width: "100%", padding: "10px 2px", borderBottom: "1px solid var(--line)" } }, [
+        el("span", { style: { fontSize: "13.5px", color: active ? "var(--saffron)" : "var(--ink)", fontWeight: active ? "600" : "400" } }, name),
+        active ? el("span", { html: ICONS.check, style: { color: "var(--saffron)" } }) : el("span", {}),
+      ]);
+      row.addEventListener("click", () => {
+        tempSelection = active ? tempSelection.filter((n) => n !== name) : [...tempSelection, name];
+        renderList();
+      });
+      list.appendChild(row);
+    });
+  }
+  q.addEventListener("input", renderList);
+  renderList();
+
+  const footer = el("div", { style: { padding: "12px 20px calc(env(safe-area-inset-bottom,0px) + 16px)", display: "flex", gap: "10px" } });
+  const clearBtn = el("button", { class: "btn-ghost" }, "Azzera");
+  clearBtn.addEventListener("click", () => { tempSelection = []; renderList(); });
+  const applyBtn = el("button", { class: "btn-primary" }, "Applica");
+  applyBtn.addEventListener("click", () => { ingredientFilter = tempSelection; backdrop.remove(); renderHome(); });
+  footer.append(clearBtn, applyBtn);
+  panel.appendChild(footer);
+
+  backdrop.appendChild(panel);
+  document.body.appendChild(backdrop);
+}
+
+function renderDrawer() {
+  const existing = document.getElementById("drawer-backdrop");
+  if (existing) existing.remove();
+  if (!drawerOpen) return;
+
+  const closeDrawer = () => { drawerOpen = false; renderDrawer(); };
+  const backdrop = el("div", { class: "drawer-backdrop", id: "drawer-backdrop", onclick: closeDrawer });
+  const panel = el("div", { class: "drawer-panel", onclick: (e) => e.stopPropagation() });
+
+  panel.appendChild(el("div", { class: "drawer-brand" }, [
+    el("span", { html: ICONS.chef, style: { color: "var(--saffron)" } }),
+    el("span", { class: "display", style: { fontSize: "17px" } }, "La Tua Cucina"),
+  ]));
+
+  const homeItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.chef }), "Le tue ricette"]);
+  homeItem.addEventListener("click", () => { closeDrawer(); route = { screen: "home", selectedId: null }; render(); });
+  panel.appendChild(homeItem);
+
+  const favItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.heart }), "Preferiti"]);
+  favItem.addEventListener("click", () => { closeDrawer(); route = { screen: "favorites", selectedId: null }; render(); });
+  panel.appendChild(favItem);
+
+  const shopItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.cart }), "Lista della spesa"]);
+  shopItem.addEventListener("click", () => { closeDrawer(); route = { screen: "shopping", selectedId: null }; render(); });
+  panel.appendChild(shopItem);
+
+  panel.appendChild(el("div", { class: "drawer-section-title" }, "Sfoglia"));
+  const catToggle = el("button", { class: "drawer-item", style: { justifyContent: "space-between" } }, [
+    el("div", { class: "row", style: { gap: "13px" } }, [el("span", { html: ICONS.database }), "Categorie"]),
+    el("span", { html: ICONS.chevronDown, style: { transform: drawerCatsExpanded ? "rotate(180deg)" : "none", transition: "transform .15s" } }),
+  ]);
+  catToggle.addEventListener("click", () => { drawerCatsExpanded = !drawerCatsExpanded; renderDrawer(); });
+  panel.appendChild(catToggle);
+
+  if (drawerCatsExpanded) {
+    const allRow = el("button", { class: "drawer-cat-row" + (filter === "all" ? " active" : ""), style: { color: filter === "all" ? "var(--saffron)" : "var(--ink)" } }, "Tutte le categorie");
+    allRow.addEventListener("click", () => { filter = "all"; closeDrawer(); renderHome(); });
+    panel.appendChild(allRow);
+    CATEGORIES.forEach((c) => {
+      const active = filter === c.key;
+      const row = el("button", { class: "drawer-cat-row" + (active ? " active" : ""), style: { color: active ? "var(" + c.color + ")" : "var(--ink)" } }, [
+        el("span", { style: { width: "8px", height: "8px", borderRadius: "999px", background: "var(" + c.color + ")", flexShrink: 0 } }),
+        c.label,
+      ]);
+      row.addEventListener("click", () => { filter = c.key; closeDrawer(); renderHome(); });
+      panel.appendChild(row);
+    });
+  }
+
+  if (AUTH_EMAIL === ADMIN_EMAIL) {
+    const adminItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.database }), "Backup ricette (admin)"]);
+    adminItem.addEventListener("click", () => { closeDrawer(); route = { screen: "backup", selectedId: null }; render(); });
+    panel.appendChild(adminItem);
+  }
+
+  panel.appendChild(el("div", { class: "drawer-section-title" }, "Tema"));
+  const themeRow = el("div", { class: "theme-toggle-row" });
+  const currentTheme = getTheme();
+  const isDarkNow = currentTheme === "dark" || (currentTheme === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const lightOpt = el("button", { class: "theme-opt" + (!isDarkNow ? " active" : "") }, [el("span", { html: ICONS.sun }), "Chiaro"]);
+  lightOpt.addEventListener("click", () => { try { localStorage.setItem("cucina_theme", "light"); } catch (e) {} applyTheme("light"); renderDrawer(); renderCurrent(); });
+  const darkOpt = el("button", { class: "theme-opt" + (isDarkNow ? " active" : "") }, [el("span", { html: ICONS.moon }), "Scuro"]);
+  darkOpt.addEventListener("click", () => { try { localStorage.setItem("cucina_theme", "dark"); } catch (e) {} applyTheme("dark"); renderDrawer(); renderCurrent(); });
+  themeRow.append(lightOpt, darkOpt);
+  panel.appendChild(themeRow);
+
+  panel.appendChild(el("div", { class: "drawer-section-title" }, ""));
+  const logoutItem = el("button", { class: "drawer-item", style: { color: "var(--ink-soft)" } }, [el("span", { html: ICONS.logout }), "Esci"]);
+  logoutItem.addEventListener("click", () => {
+    if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+    closeDrawer();
+    fauth.signOut();
+  });
+  panel.appendChild(logoutItem);
+
+  backdrop.appendChild(panel);
+  document.body.appendChild(backdrop);
+}
+
+function renderBottomTabBar(active) {
+  const existing = document.getElementById("bottom-tabbar");
+  if (existing) existing.remove();
+  const bar = el("div", { class: "bottom-tabbar", id: "bottom-tabbar" });
+
+  const mk = (icon, label, key, onClick) =>
+    el("button", { class: "tab-item" + (active === key ? " active" : ""), onclick: onClick }, [el("span", { html: icon }), label]);
+
+  bar.appendChild(mk(ICONS.chef, "Ricette", "home", () => { route = { screen: "home", selectedId: null }; render(); }));
+  bar.appendChild(mk(ICONS.camera, "Storie", "stories", () => { route = { screen: "stories", selectedId: null }; render(); }));
+
+  const plusBtn = el("button", { class: "tab-item-plus", html: ICONS.plus });
+  plusBtn.addEventListener("click", () => {
+    draft = { name: "", categories: [CATEGORIES[0].key], coverImage: null, exclusive: false, servings: "4", prepMinutes: "", difficulty: "media",
+      ingredients: [{ name: "", note: "" }], steps: [{ id: rid(), text: "", hasTimer: false, minutes: "5", seconds: "0", image: null }] };
+    route = { screen: "create", selectedId: null };
+    render();
+  });
+  bar.appendChild(plusBtn);
+
+  bar.appendChild(mk(ICONS.heart, "Preferiti", "favorites", () => { route = { screen: "favorites", selectedId: null }; render(); }));
+  bar.appendChild(mk(ICONS.person, "Profilo", "profile", () => { route = { screen: "profile", selectedId: null, viewUid: currentUid }; render(); }));
+
+  document.body.appendChild(bar);
+}
+
+function renderHome() {
+  app.innerHTML = "";
+  const stickyWrap = el("div", { style: { position: "sticky", top: "0", zIndex: "5", background: "var(--bg)", borderBottom: "1px solid var(--line)", paddingBottom: "12px" } });
+
+  const topBar = el("div", { class: "row", style: { justifyContent: "space-between", padding: "22px 20px 4px" } });
+  const menuBtn = el("button", { class: "icon-btn", html: ICONS.menu, style: { color: "var(--ink)" } });
+  menuBtn.addEventListener("click", () => { drawerOpen = true; renderDrawer(); });
+  topBar.append(
+    menuBtn,
+    el("div", { style: { textAlign: "right" } }, [
+      el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", margin: 0 } }, "Ciao, " + AUTH_USER),
+      el("h1", { class: "display", style: { fontSize: "22px", margin: "2px 0 0" } }, "Le tue ricette"),
+    ])
+  );
+  stickyWrap.appendChild(topBar);
+
+  const searchRow = el("div", { style: { padding: "10px 20px 0" } });
+  const searchFlex = el("div", { class: "row", style: { gap: "8px" } });
+  const searchWrap = el("div", { class: "search-wrap", style: { marginBottom: "0", flex: "1" } });
+  searchWrap.innerHTML = ICONS.search;
+  const searchInput = el("input", { class: "search-input", placeholder: "Cerca una ricetta...", value: searchQuery });
+  searchWrap.appendChild(searchInput);
+  const ingFilterBtn = el("button", {
+    class: "icon-btn", html: ICONS.filter,
+    style: { background: ingredientFilter.length ? "var(--saffron)" : "var(--card)", color: ingredientFilter.length ? "var(--chalk-on-accent)" : "var(--ink)", border: "1px solid var(--line)", flexShrink: 0 },
+  });
+  ingFilterBtn.addEventListener("click", () => openIngredientFilterSheet());
+  searchFlex.append(searchWrap, ingFilterBtn);
+  searchRow.appendChild(searchFlex);
+
+  if (filter !== "all") {
+    const activeCat = CATEGORIES.find((c) => c.key === filter);
+    if (activeCat) {
+      const pill = el("button", { class: "active-filter-pill", style: { background: "var(" + activeCat.color + ")", color: "var(--chalk-on-accent)", marginTop: "10px", marginBottom: "0", marginRight: "6px" } }, [
+        activeCat.label, el("span", { html: ICONS.x, style: { display: "flex" } }),
+      ]);
+      pill.addEventListener("click", () => { filter = "all"; renderHome(); });
+      searchRow.appendChild(pill);
+    }
+  }
+  ingredientFilter.forEach((name) => {
+    const pill = el("button", { class: "active-filter-pill", style: { background: "var(--herb)", color: "#fff", marginTop: "10px", marginBottom: "0", marginRight: "6px" } }, [
+      name, el("span", { html: ICONS.x, style: { display: "flex" } }),
+    ]);
+    pill.addEventListener("click", () => { ingredientFilter = ingredientFilter.filter((n) => n !== name); renderHome(); });
+    searchRow.appendChild(pill);
+  });
+  stickyWrap.appendChild(searchRow);
+  app.appendChild(stickyWrap);
+
+  const body = el("div", { style: { padding: "14px 20px 90px" } });
+  const bn = bannerNode();
+  if (bn) body.appendChild(bn);
+
+  const listContainer = el("div", {});
+  body.appendChild(listContainer);
+  app.appendChild(body);
+
+  function renderRecipeList() {
+    listContainer.innerHTML = "";
+    let list = (filter === "all" ? recipes : recipes.filter((r) => catsOf(r).includes(filter))).filter((r) => !r.exclusive);
+    const q = searchQuery.trim().toLowerCase();
+    if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
+    if (ingredientFilter.length) {
+      const wanted = ingredientFilter.map((n) => n.toLowerCase());
+      list = list.filter((r) => wanted.every((w) => (r.ingredientNames || []).includes(w)));
+    }
+    list = [...list].sort((a, b) => (Array.isArray(b.votedBy) ? b.votedBy.length : 0) - (Array.isArray(a.votedBy) ? a.votedBy.length : 0));
+    if (list.length === 0) {
+      listContainer.appendChild(el("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--ink-soft)" } }, [
+        el("p", { style: { fontSize: "13px" } }, q ? "Nessuna ricetta trovata per \"" + searchQuery.trim() + "\"." : "Nessuna ricetta qui. Crea la prima."),
+      ]));
+    } else {
+      const grid = el("div", { class: "recipe-grid" });
+      list.forEach((r) => grid.appendChild(recipeCard(r)));
+      listContainer.appendChild(grid);
+    }
+  }
+  searchInput.addEventListener("input", (e) => { searchQuery = e.target.value; renderRecipeList(); });
+  renderRecipeList();
+  renderBottomTabBar("home");
+}
+
+/* ---------------- create ---------------- */
+function renderCreate() {
+  app.innerHTML = "";
+  const wasEditing = !!editingRecipeId;
+  app.appendChild(header({ title: wasEditing ? "Modifica ricetta" : "Nuova ricetta", back: true, onBack: () => {
+    if (wasEditing) { const id = editingRecipeId; editingRecipeId = null; timers = {}; viewServings = null; route = { screen: "detail", selectedId: id, step: -1 }; }
+    else route = { screen: "home", selectedId: null };
+    render();
+  }}));
+  const body = el("div", { style: { padding: "0 20px" } });
+
+  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Nome ricetta"));
+  const nameInput = el("input", { class: "field", placeholder: "Es. Ragù della domenica", value: draft.name, style: { marginBottom: "16px" } });
+  nameInput.addEventListener("input", (e) => { draft.name = e.target.value; updateSaveState(); });
+  body.appendChild(nameInput);
+
+  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "8px" } }, "Categorie (puoi sceglierne più di una)"));
+  const catRow = el("div", { class: "scroll-x", style: { marginBottom: "18px" } });
+  CATEGORIES.forEach((c) => {
+    const active = draft.categories.includes(c.key);
+    const chip = el("button", { class: "chip" + (active ? " active" : "") }, c.label);
+    if (active) { chip.style.background = "var(" + c.color + ")"; chip.style.borderColor = "var(" + c.color + ")"; }
+    chip.addEventListener("click", () => {
+      if (active) draft.categories = draft.categories.filter((k) => k !== c.key);
+      else draft.categories = [...draft.categories, c.key];
+      renderCreate();
+    });
+    catRow.appendChild(chip);
+  });
+  body.appendChild(catRow);
+
+  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Porzioni"));
+  const servingsInput = el("input", { class: "field", type: "text", inputmode: "numeric", value: draft.servings, style: { marginBottom: "18px", maxWidth: "100px" } });
+  servingsInput.addEventListener("input", (e) => { if (/^\d{0,2}$/.test(e.target.value)) draft.servings = e.target.value; else e.target.value = draft.servings; });
+  servingsInput.addEventListener("blur", () => { draft.servings = String(Math.max(1, parseInt(draft.servings, 10) || 4)); servingsInput.value = draft.servings; });
+  body.appendChild(servingsInput);
+
+  const timeRow2 = el("div", { class: "row", style: { gap: "16px", marginBottom: "18px", flexWrap: "wrap" } });
+  const prepCol = el("div", {});
+  prepCol.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Tempo (minuti)"));
+  const prepInput = el("input", { class: "field", type: "text", inputmode: "numeric", placeholder: "Es. 30", value: draft.prepMinutes, style: { maxWidth: "110px" } });
+  prepInput.addEventListener("input", (e) => { if (/^\d{0,3}$/.test(e.target.value)) draft.prepMinutes = e.target.value; else e.target.value = draft.prepMinutes; });
+  prepCol.appendChild(prepInput);
+  timeRow2.appendChild(prepCol);
+
+  const diffCol = el("div", { style: { flex: 1 } });
+  diffCol.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Difficoltà"));
+  const diffRow = el("div", { class: "row", style: { gap: "6px" } });
+  [["facile", "Facile"], ["media", "Media"], ["difficile", "Difficile"]].forEach(([key, label]) => {
+    const chip = el("button", { class: "chip" + (draft.difficulty === key ? " active" : "") }, label);
+    if (draft.difficulty === key) { chip.style.background = "var(--saffron)"; chip.style.borderColor = "var(--saffron)"; }
+    chip.addEventListener("click", () => { draft.difficulty = key; renderCreate(); });
+    diffRow.appendChild(chip);
+  });
+  diffCol.appendChild(diffRow);
+  timeRow2.appendChild(diffCol);
+  body.appendChild(timeRow2);
+
+  const myExclusiveCount = myExclusiveRecipes.filter((r) => r.id !== editingRecipeId).length;
+  const exclusiveBox = el("div", { class: "step-card", style: { marginBottom: "20px" } });
+  const exCheckboxLabel = el("label", { class: "row", style: { gap: "10px", fontSize: "13.5px", cursor: "pointer" } });
+  const exCheckbox = el("input", { type: "checkbox" });
+  exCheckbox.checked = draft.exclusive;
+  const canBeExclusive = draft.exclusive || myExclusiveCount < MAX_EXCLUSIVE;
+  if (!canBeExclusive) exCheckbox.disabled = true;
+  exCheckbox.addEventListener("change", (e) => { draft.exclusive = e.target.checked; });
+  exCheckboxLabel.append(exCheckbox, el("span", { html: ICONS.lock }), " Ricetta esclusiva (visibile solo a chi ti segue)");
+  exclusiveBox.appendChild(exCheckboxLabel);
+  exclusiveBox.appendChild(el("p", { style: { fontSize: "11px", color: canBeExclusive ? "var(--ink-soft)" : "var(--clay)", margin: "6px 0 0" } },
+    canBeExclusive ? "Non comparirà nella pagina principale, solo nel tuo profilo. (" + myExclusiveCount + "/" + MAX_EXCLUSIVE + " usate)" : "Hai raggiunto il limite massimo di " + MAX_EXCLUSIVE + " ricette esclusive."));
+  body.appendChild(exclusiveBox);
+
+  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "8px" } }, "Foto di presentazione"));
+  const coverLabel = el("label", { class: "card", style: { width: "100%", height: "140px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginBottom: "22px", overflow: "hidden" } });
+  if (draft.coverImage) coverLabel.appendChild(el("img", { src: draft.coverImage, style: { width: "100%", height: "100%", objectFit: "cover" } }));
+  else coverLabel.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--ink-soft)">' + ICONS.image + '<span style="font-size:12px">Carica foto</span></div>';
+  const coverInput = el("input", { type: "file", accept: "image/*", style: { display: "none" } });
+  coverInput.addEventListener("change", (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    pendingWork++;
+    compressImage(file, 640, 0.6).then((dataUrl) => { draft.coverImage = dataUrl; pendingWork--; renderCreate(); })
+      .catch((err) => { pendingWork--; console.error(err); });
+  });
+  coverLabel.appendChild(coverInput);
+  body.appendChild(coverLabel);
+
+  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "8px" } }, "Ingredienti"));
+  const ingList = el("div", { id: "ing-list", style: { marginBottom: "24px" } });
+  body.appendChild(ingList);
+  renderIngredients(ingList);
+
+  body.appendChild(el("h3", { class: "display", style: { fontSize: "17px", marginBottom: "10px" } }, "Passaggi"));
+  const stepsList = el("div", { id: "steps-list" });
+  body.appendChild(stepsList);
+  renderSteps(stepsList);
+
+  const addStepBtn = el("button", { class: "btn-ghost", style: { marginBottom: "22px" } }, [
+    el("span", { html: ICONS.plus }), " Aggiungi passaggio"
+  ]);
+  addStepBtn.addEventListener("click", () => {
+    draft.steps.push({ id: rid(), text: "", hasTimer: false, minutes: "5", seconds: "0", image: null });
+    renderSteps(stepsList);
+  });
+  body.appendChild(addStepBtn);
+
+  const saveBtn = el("button", { class: "btn-primary", id: "save-btn" }, [el("span", { html: ICONS.check }), wasEditing ? " Salva modifiche" : " Salva ricetta"]);
+  saveBtn.addEventListener("click", saveRecipe);
+  body.appendChild(saveBtn);
+  body.appendChild(el("div", { style: { height: "20px" } }));
+
+  app.appendChild(body);
+  updateSaveState();
+}
+
+function renderIngredients(container) {
+  container.innerHTML = "";
+  draft.ingredients.forEach((item, idx) => {
+    const row = el("div", { style: { marginBottom: "10px" } });
+    const inputRow = el("div", { class: "row", style: { gap: "8px" } });
+
+    const nameWrap = el("div", { style: { position: "relative", flex: 1 } });
+    const nameInput = el("input", { class: "field", placeholder: "Scrivi per cercare...", value: item.name });
+    const suggestBox = el("div", { style: { position: "absolute", left: 0, right: 0, top: "calc(100% + 4px)", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "10px", boxShadow: "0 8px 20px rgba(0,0,0,.12)", zIndex: "6", maxHeight: "180px", overflowY: "auto", display: "none" } });
+    const closeSuggest = () => { suggestBox.style.display = "none"; suggestBox.innerHTML = ""; };
+    nameInput.addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      item.name = e.target.value;
+      if (!q) { closeSuggest(); return; }
+      const matches = MASTER_INGREDIENTS.filter((n) => n.toLowerCase().includes(q)).slice(0, 8);
+      if (matches.length === 0) { closeSuggest(); return; }
+      suggestBox.innerHTML = "";
+      matches.forEach((m) => {
+        const opt = el("button", { style: { display: "block", width: "100%", textAlign: "left", padding: "9px 12px", fontSize: "13.5px", color: "var(--ink)" } }, m);
+        opt.addEventListener("mousedown", (ev) => ev.preventDefault());
+        opt.addEventListener("click", () => { item.name = m; nameInput.value = m; closeSuggest(); });
+        suggestBox.appendChild(opt);
+      });
+      suggestBox.style.display = "block";
+    });
+    nameInput.addEventListener("blur", () => {
+      setTimeout(() => {
+        closeSuggest();
+        if (item.name && !MASTER_INGREDIENTS.includes(item.name)) { item.name = ""; nameInput.value = ""; }
+      }, 120);
+    });
+    nameWrap.append(nameInput, suggestBox);
+
+    const noteInput = el("input", { class: "field", placeholder: "Quantità (facoltativa)", value: item.note || "", style: { maxWidth: "130px" } });
+    noteInput.addEventListener("input", (e) => { item.note = e.target.value; });
+
+    inputRow.append(nameWrap, noteInput);
+    if (draft.ingredients.length > 1) {
+      const rm = el("button", { class: "icon-btn", html: ICONS.trash, style: { color: "var(--ink-soft)" } });
+      rm.addEventListener("click", () => { draft.ingredients.splice(idx, 1); renderIngredients(container); });
+      inputRow.appendChild(rm);
+    }
+    row.appendChild(inputRow);
+    container.appendChild(row);
+  });
+  const addBtn = el("button", { class: "btn-ghost" }, [el("span", { html: ICONS.plus }), " Aggiungi ingrediente"]);
+  addBtn.addEventListener("click", () => { draft.ingredients.push({ name: "", note: "" }); renderIngredients(container); });
+  container.appendChild(addBtn);
+}
+
+function renderSteps(container) {
+  container.innerHTML = "";
+  draft.steps.forEach((step, idx) => {
+    const card = el("div", { class: "step-card" });
+    const top = el("div", { class: "row", style: { justifyContent: "space-between", marginBottom: "8px" } }, [
+      el("span", { style: { fontSize: "11.5px", fontWeight: 600, color: "var(--herb)" } }, "Passaggio " + (idx + 1)),
+    ]);
+    if (draft.steps.length > 1) {
+      const rm = el("button", { html: ICONS.trash, style: { color: "var(--ink-soft)" } });
+      rm.addEventListener("click", () => { draft.steps.splice(idx, 1); renderSteps(container); });
+      top.appendChild(rm);
+    }
+    card.appendChild(top);
+
+    const textArea = el("textarea", { class: "field", rows: "2", placeholder: "Descrivi cosa fare in questo passaggio...", style: { resize: "none", marginBottom: "10px" } });
+    textArea.value = step.text;
+    textArea.addEventListener("input", (e) => { step.text = e.target.value; updateSaveState(); });
+    card.appendChild(textArea);
+
+    const timerLabel = el("label", { class: "row", style: { gap: "8px", fontSize: "13.5px", marginBottom: "8px", cursor: "pointer" } });
+    const cb = el("input", { type: "checkbox" });
+    cb.checked = step.hasTimer;
+    cb.addEventListener("change", (e) => { step.hasTimer = e.target.checked; renderSteps(container); });
+    timerLabel.append(cb, "Aggiungi timer da cucina");
+    card.appendChild(timerLabel);
+
+    if (step.hasTimer) {
+      const timeRow = el("div", { class: "row", style: { gap: "8px", marginBottom: "8px" } });
+      const minInput = el("input", { class: "field", type: "text", inputmode: "numeric", style: { width: "60px", textAlign: "center", padding: "8px" }, value: step.minutes });
+      minInput.addEventListener("input", (e) => { if (/^\d{0,3}$/.test(e.target.value)) step.minutes = e.target.value; else e.target.value = step.minutes; });
+      minInput.addEventListener("blur", () => { step.minutes = String(Math.max(0, Math.min(180, parseInt(step.minutes, 10) || 0))); minInput.value = step.minutes; });
+      const secInput = el("input", { class: "field", type: "text", inputmode: "numeric", style: { width: "60px", textAlign: "center", padding: "8px" }, value: step.seconds });
+      secInput.addEventListener("input", (e) => { if (/^\d{0,2}$/.test(e.target.value)) step.seconds = e.target.value; else e.target.value = step.seconds; });
+      secInput.addEventListener("blur", () => { step.seconds = String(Math.max(0, Math.min(59, parseInt(step.seconds, 10) || 0))); secInput.value = step.seconds; });
+      timeRow.append(minInput, el("span", { style: { fontSize: "12px", color: "var(--ink-soft)" } }, "min"), secInput, el("span", { style: { fontSize: "12px", color: "var(--ink-soft)" } }, "sec"));
+      card.appendChild(timeRow);
+    }
+
+    const photoLabel = el("label", { class: "row", style: { gap: "6px", fontSize: "12px", color: "var(--ink-soft)", cursor: "pointer" } });
+    photoLabel.innerHTML = ICONS.image + '<span style="margin-left:4px">' + (step.image ? "Cambia foto" : "Aggiungi foto (opzionale)") + "</span>";
+    const photoInput = el("input", { type: "file", accept: "image/*", style: { display: "none" } });
+    photoInput.addEventListener("change", (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      pendingWork++;
+      compressImage(file, 480, 0.55).then((dataUrl) => { step.image = dataUrl; pendingWork--; renderSteps(container); })
+        .catch((err) => { pendingWork--; console.error(err); });
+    });
+    photoLabel.appendChild(photoInput);
+    card.appendChild(photoLabel);
+    if (step.image) card.appendChild(el("img", { src: step.image, style: { width: "100%", height: "90px", objectFit: "cover", borderRadius: "8px", marginTop: "8px" } }));
+
+    container.appendChild(card);
+  });
+}
+
+function updateSaveState() {
+  const btn = document.getElementById("save-btn");
+  if (!btn) return;
+  const ok = draft.name.trim() && draft.categories.length > 0 && draft.steps.every((s) => s.text.trim());
+  btn.disabled = !ok;
+}
+
+function saveRecipe() {
+  if (!draft.name.trim() || !draft.categories.length || !draft.steps.every((s) => s.text.trim())) return;
+  if (!currentUid) { banner = { type: "error", text: "Connessione al database non pronta, riprova tra un istante." }; renderCreate(); return; }
+  const isEditing = !!editingRecipeId;
+  const original = isEditing ? getRecipeById(editingRecipeId) : null;
+  const finish = () => {
+    const data = {
+      name: draft.name.trim(),
+      categories: draft.categories,
+      exclusive: !!draft.exclusive,
+      servings: parseInt(draft.servings, 10) || 4,
+      prepMinutes: parseInt(draft.prepMinutes, 10) || 0,
+      difficulty: draft.difficulty || "media",
+      coverImage: draft.coverImage || null,
+      ingredients: draft.ingredients.filter((i) => i.name.trim() || (i.note || "").trim()).map((i) => ({ name: i.name.trim(), note: (i.note || "").trim() })),
+      ingredientNames: draft.ingredients.filter((i) => i.name.trim()).map((i) => i.name.trim().toLowerCase()),
+      steps: draft.steps.map((s) => ({
+        id: s.id, text: s.text.trim(), hasTimer: s.hasTimer,
+        minutes: parseInt(s.minutes, 10) || 0, seconds: parseInt(s.seconds, 10) || 0,
+        image: s.image || null,
+      })),
+      author: isEditing && original ? original.author : AUTH_USER,
+      authorUid: isEditing && original ? original.authorUid : currentUid,
+      createdAt: isEditing && original ? original.createdAt : Date.now(),
+    };
+    const ref = isEditing ? fdb.collection("recipes").doc(editingRecipeId) : fdb.collection("recipes").doc();
+    ref.set(data).then(() => {
+      const goToId = isEditing ? editingRecipeId : null;
+      editingRecipeId = null;
+      if (goToId) { timers = {}; viewServings = null; route = { screen: "detail", selectedId: goToId, step: -1 }; }
+      else route = { screen: "home", selectedId: null };
+      render();
+    }).catch((e) => {
+      console.error(e);
+      const msg = e.code === "invalid-argument" || (e.message && e.message.indexOf("1048576") > -1)
+        ? "Ricetta troppo grande (troppe foto o foto troppo pesanti): riduci il numero di foto."
+        : "Salvataggio non riuscito: " + e.code;
+      banner = { type: "error", text: msg };
+      renderCreate();
+    });
+  };
+  if (pendingWork > 0) {
+    const btn = document.getElementById("save-btn");
+    if (btn) { btn.disabled = true; }
+    const wait = setInterval(() => { if (pendingWork === 0) { clearInterval(wait); finish(); } }, 150);
+  } else {
+    finish();
+  }
+}
+
+/* ---------------- detail ---------------- */
+function stepTimerBlock(step) {
+  const total = step.minutes * 60 + step.seconds;
+  if (!timers[step.id]) timers[step.id] = { remaining: total, running: false, ringing: false, total };
+  const t = timers[step.id];
+  const r = 22, circumference = 2 * Math.PI * r;
+
+  const wrap = el("div", { class: "row", style: { gap: "10px", marginTop: "10px", background: "var(--card-dim)", borderRadius: "10px", padding: "10px 12px" } });
+  const ringWrap = el("div", { class: t.ringing ? "ringing" : "", style: { position: "relative", width: "48px", height: "48px", flexShrink: 0 } });
+  ringWrap.innerHTML =
+    '<svg width="48" height="48" viewBox="0 0 48 48">' +
+    '<circle cx="24" cy="24" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="4"/>' +
+    '<circle class="timer-ring-progress" data-ring="' + step.id + '" cx="24" cy="24" r="' + r + '" fill="none" stroke="' + (t.ringing ? "var(--clay)" : "var(--herb)") + '" stroke-width="4" stroke-linecap="round" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + (circumference * (1 - (total > 0 ? t.remaining / total : 0))) + '" transform="rotate(-90 24 24)"/></svg>' +
+    '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:' + (t.ringing ? "var(--clay)" : "var(--ink)") + '">' + ICONS.alarm + "</div>";
+
+  const mm = String(Math.floor(t.remaining / 60)).padStart(2, "0");
+  const ss = String(t.remaining % 60).padStart(2, "0");
+  const info = el("div", { style: { flex: 1 } }, [
+    el("p", { id: "time-" + step.id, style: { fontSize: "14px", fontWeight: 600, margin: 0 } }, t.ringing ? "Tempo scaduto!" : (mm + ":" + ss)),
+    el("p", { id: "status-" + step.id, style: { fontSize: "10.5px", color: "var(--ink-soft)", margin: 0 } }, t.ringing ? "Tocca per fermare la sveglia" : (t.running ? "In corso" : "Timer pronto")),
+  ]);
+
+  const controls = el("div", { class: "row", style: { gap: "6px" } });
+  if (t.ringing) {
+    const stopBtn = el("button", { class: "icon-btn", html: ICONS.x, style: { background: "var(--clay)", color: "#fff" } });
+    stopBtn.addEventListener("click", () => { stopAlarm(step.id); t.ringing = false; refreshTimerNode(step); });
+    controls.appendChild(stopBtn);
+  } else {
+    const resetBtn = el("button", { class: "icon-btn", html: ICONS.reset, style: { background: "var(--card)", color: "var(--ink)" } });
+    resetBtn.addEventListener("click", () => { t.remaining = total; t.running = false; t.endAt = null; refreshTimerNode(step); });
+    const playBtn = el("button", { class: "icon-btn", html: t.running ? ICONS.pause : ICONS.play, style: { background: "var(--herb)", color: "#fff" } });
+    playBtn.addEventListener("click", () => {
+      unlockAudio();
+      if (t.running) {
+        t.remaining = Math.max(0, Math.ceil((t.endAt - Date.now()) / 1000));
+        t.running = false;
+        t.endAt = null;
+      } else {
+        t.endAt = Date.now() + t.remaining * 1000;
+        t.running = true;
+      }
+      refreshTimerNode(step);
+    });
+    controls.append(resetBtn, playBtn);
+  }
+
+  wrap.append(ringWrap, info, controls);
+  wrap.setAttribute("data-timer-wrap", step.id);
+  return wrap;
+}
+
+function refreshTimerNode(step) {
+  const old = document.querySelector('[data-timer-wrap="' + step.id + '"]');
+  if (!old) return;
+  const fresh = stepTimerBlock(step);
+  old.replaceWith(fresh);
+}
+
+function tickTimersOnce() {
+  if (route.screen !== "detail") return;
+  const rec = getRecipeById(route.selectedId);
+  if (!rec) return;
+  rec.steps.forEach((step) => {
+    const t = timers[step.id];
+    if (t && t.running && t.endAt) {
+      const newRemaining = Math.max(0, Math.ceil((t.endAt - Date.now()) / 1000));
+      if (newRemaining !== t.remaining) t.remaining = newRemaining;
+      if (t.remaining <= 0) {
+        t.running = false; t.ringing = true; t.endAt = null;
+        startAlarm(step.id);
+        refreshTimerNode(step);
+        return;
+      }
+      const timeEl = document.getElementById("time-" + step.id);
+      const ring = document.querySelector('[data-ring="' + step.id + '"]');
+      if (timeEl) {
+        const mm = String(Math.floor(t.remaining / 60)).padStart(2, "0");
+        const ss = String(t.remaining % 60).padStart(2, "0");
+        timeEl.textContent = mm + ":" + ss;
+      }
+      if (ring) {
+        const c = 2 * Math.PI * 22;
+        ring.setAttribute("stroke-dashoffset", c * (1 - (t.total > 0 ? t.remaining / t.total : 0)));
+      }
+    }
+  });
+}
+
+let tickInterval = null;
+function startTicking() {
+  if (tickInterval) return;
+  tickInterval = setInterval(tickTimersOnce, 1000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) tickTimersOnce(); });
+  window.addEventListener("focus", tickTimersOnce);
+  window.addEventListener("pageshow", tickTimersOnce);
+}
+
+function ringingStepInfo(rec) {
+  for (let i = 0; i < rec.steps.length; i++) {
+    if (timers[rec.steps[i].id]?.ringing) return { step: rec.steps[i], index: i };
+  }
+  return null;
+}
+
+function goToStep(newStep) {
+  route.step = newStep;
+  renderDetail();
+}
+
+function renderDetail() {
+  startTicking();
+  app.innerHTML = "";
+  const rec = getRecipeById(route.selectedId);
+  if (!rec) {
+    app.appendChild(el("div", { style: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 30px", textAlign: "center" } }, [
+      el("p", { style: { fontSize: "13px", marginBottom: "16px" } }, "Ricetta non trovata."),
+      (() => { const b = el("button", { class: "btn-primary", style: { width: "auto", padding: "10px 20px" } }, "Torna alle ricette"); b.addEventListener("click", () => { route = { screen: "home", selectedId: null }; render(); }); return b; })(),
+    ]));
+    return;
+  }
+  const exitToHome = () => { route = { screen: "home", selectedId: null }; render(); };
+  const ring = ringingStepInfo(rec);
+
+  const root = el("div", { class: "pz-root" });
+
+  if (ring && ring.index !== route.step) {
+    const jump = el("button", { class: "pz-ring-jump ringing" }, "⏰ Timer scaduto — tocca per fermarlo");
+    jump.addEventListener("click", () => goToStep(ring.index));
+    root.appendChild(jump);
+  }
+
+  if (route.step === -1) {
+    /* ---- overview / cover slide ---- */
+    const top = el("div", { class: "pz-topbar" }, [
+      el("button", { class: "icon-btn", html: ICONS.x, onclick: exitToHome }),
+      el("div", {}),
+    ]);
+    root.appendChild(top);
+
+    const body = el("div", { class: "pz-body pz-slide-in" });
+    const cats = catsOf(rec).map((k) => CATEGORIES.find((c) => c.key === k)).filter(Boolean);
+    const cover = el("div", { class: "pz-hero", style: { height: "220px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" } });
+    if (rec.coverImage) cover.appendChild(el("img", { src: rec.coverImage, style: { width: "100%", height: "100%", objectFit: "cover" } }));
+    else cover.innerHTML = ICONS.chef;
+    if ((rec.authorUid && rec.authorUid === currentUid) || AUTH_EMAIL === ADMIN_EMAIL) {
+      const editBtn = el("button", {
+        class: "icon-btn", html: ICONS.edit,
+        style: { position: "absolute", top: "10px", right: "54px", color: "#fff", background: "rgba(0,0,0,.45)", backdropFilter: "blur(4px)" },
+      });
+      editBtn.addEventListener("click", () => {
+        editingRecipeId = rec.id;
+        draft = {
+          name: rec.name, categories: catsOf(rec), coverImage: rec.coverImage || null, exclusive: !!rec.exclusive,
+          servings: String(rec.servings || 4), prepMinutes: rec.prepMinutes ? String(rec.prepMinutes) : "", difficulty: rec.difficulty || "media",
+          ingredients: rec.ingredients && rec.ingredients.length
+            ? rec.ingredients.map((i) => typeof i === "string" ? { name: "", note: i } : { name: i.name || "", note: i.note || "" })
+            : [{ name: "", note: "" }],
+          steps: rec.steps.map((s) => ({
+            id: s.id, text: s.text, hasTimer: !!s.hasTimer,
+            minutes: String(s.minutes || 0), seconds: String(s.seconds || 0), image: s.image || null,
+          })),
+        };
+        route = { screen: "create", selectedId: null };
+        render();
+      });
+      cover.appendChild(editBtn);
+
+      let confirming = false, confirmTimeout = null;
+      const del = el("button", {
+        class: "icon-btn", html: ICONS.trash,
+        style: { position: "absolute", top: "10px", right: "10px", color: "#fff", background: "rgba(0,0,0,.45)", backdropFilter: "blur(4px)" },
+      });
+      del.addEventListener("click", () => {
+        if (!confirming) {
+          confirming = true;
+          del.innerHTML = ICONS.check;
+          del.style.background = "var(--clay)";
+          confirmTimeout = setTimeout(() => { confirming = false; del.innerHTML = ICONS.trash; del.style.background = "rgba(0,0,0,.45)"; }, 3000);
+          return;
+        }
+        clearTimeout(confirmTimeout);
+        fdb.collection("recipes").doc(rec.id).delete().catch((e) => console.error(e));
+        recipes = recipes.filter((r) => r.id !== rec.id);
+        delete exclusiveDocCache[rec.id];
+        exitToHome();
+      });
+      cover.appendChild(del);
+    }
+    body.appendChild(cover);
+
+    const titleBlock = el("div", { class: "pz-center", style: { marginBottom: "6px" } });
+    const catPills = el("div", { class: "row", style: { gap: "6px", justifyContent: "center", flexWrap: "wrap" } });
+    cats.forEach((c) => {
+      catPills.appendChild(el("span", {
+        style: { fontSize: "10px", fontWeight: 600, letterSpacing: ".03em", color: "var(" + c.color + ")", border: "1px solid var(" + c.color + ")", borderRadius: "999px", padding: "2px 9px" },
+      }, c.label.toUpperCase()));
+    });
+    titleBlock.appendChild(catPills);
+    titleBlock.appendChild(el("h1", { class: "display", style: { fontSize: "27px", margin: "6px 0 2px" } }, rec.name));
+    body.appendChild(titleBlock);
+    const authorLine = el("p", { style: { fontSize: "11.5px", color: "var(--ink-soft)", margin: "0 0 12px", textAlign: "center" } });
+    const authorLink = el("button", { style: { color: "var(--ink-soft)", textDecoration: "underline", fontSize: "inherit" } }, rec.author);
+    authorLink.addEventListener("click", () => { route = { screen: "profile", selectedId: null, viewUid: rec.authorUid }; render(); });
+    const diffLabels = { facile: "Facile", media: "Media", difficile: "Difficile" };
+    let extra = " · " + rec.steps.length + " passaggi";
+    if (rec.prepMinutes) extra += " · " + rec.prepMinutes + " min";
+    if (rec.difficulty) extra += " · " + (diffLabels[rec.difficulty] || rec.difficulty);
+    authorLine.append("di ", authorLink, extra);
+    body.appendChild(authorLine);
+
+    const isFavHere = myFavorites.includes(rec.id);
+    const votedByHere = Array.isArray(rec.votedBy) ? rec.votedBy : [];
+    const hasVotedHere = votedByHere.includes(currentUid);
+    const actionsRow = el("div", { class: "row", style: { justifyContent: "center", gap: "10px", marginBottom: "22px", flexWrap: "wrap" } });
+    const favActionBtn = el("button", {
+      class: "chip", style: { display: "flex", alignItems: "center", gap: "6px", color: isFavHere ? "var(--clay)" : "var(--ink)", borderColor: isFavHere ? "var(--clay)" : "var(--line)" },
+    }, [el("span", { html: isFavHere ? ICONS.heartFilled : ICONS.heart }), isFavHere ? "Nei preferiti" : "Preferiti"]);
+    favActionBtn.addEventListener("click", () => toggleFavorite(rec.id));
+    const voteActionBtn = el("button", {
+      class: "chip", style: { display: "flex", alignItems: "center", gap: "6px", color: hasVotedHere ? "var(--saffron)" : "var(--ink)", borderColor: hasVotedHere ? "var(--saffron)" : "var(--line)" },
+    }, [el("span", { html: hasVotedHere ? ICONS.thumbFilled : ICONS.thumb }), String(votedByHere.length)]);
+    voteActionBtn.addEventListener("click", () => toggleVote(rec));
+    const shopActionBtn = el("button", {
+      class: "chip", style: { display: "flex", alignItems: "center", gap: "6px" },
+    }, [el("span", { html: ICONS.cart }), "Aggiungi alla spesa"]);
+    shopActionBtn.addEventListener("click", () => {
+      const added = addRecipeToShoppingList(rec);
+      shopActionBtn.lastChild.textContent = added > 0 ? "Aggiunta!" : "Già in lista";
+      setTimeout(() => { shopActionBtn.lastChild.textContent = "Aggiungi alla spesa"; }, 1500);
+    });
+    actionsRow.append(favActionBtn, voteActionBtn, shopActionBtn);
+    body.appendChild(actionsRow);
+
+    const kcalInfo = estimateRecipeKcal(rec);
+    if (kcalInfo) {
+      const fit = !kcalInfo.partial && kcalInfo.total <= FIT_THRESHOLD_TOTAL;
+      const kcalBox = el("div", { class: "row", style: { gap: "10px", padding: "12px 16px", borderRadius: "12px", background: fit ? "color-mix(in srgb, var(--herb) 14%, var(--card))" : "var(--card-dim)", marginBottom: "18px", border: "1px solid var(--line)" } });
+      kcalBox.appendChild(el("div", { style: { fontFamily: "'Fraunces', Georgia, serif", fontSize: "20px", color: fit ? "var(--herb)" : "var(--ink)" } }, "~" + kcalInfo.total));
+      const textCol = el("div", { style: { flex: 1 } });
+      textCol.appendChild(el("p", { style: { fontSize: "12.5px", fontWeight: 600, margin: 0 } },
+        "kcal totali del piatto" + (fit ? " · FIT" : "")));
+      textCol.appendChild(el("p", { style: { fontSize: "10.5px", color: "var(--ink-soft)", margin: "2px 0 0" } },
+        kcalInfo.partial ? "Stima parziale: alcuni ingredienti non hanno un peso indicato." : "Stima approssimativa in base a ingredienti e quantità."));
+      kcalBox.appendChild(textCol);
+      body.appendChild(kcalBox);
+    }
+
+    if (rec.ingredients && rec.ingredients.length) {
+      const baseServings = rec.servings || 4;
+      if (viewServings === null) viewServings = baseServings;
+      const factor = viewServings / baseServings;
+
+      const box = el("div", { class: "card", style: { padding: "14px 16px", marginBottom: "24px" } });
+      const titleRow = el("div", { class: "row", style: { justifyContent: "space-between", marginBottom: "8px" } });
+      titleRow.appendChild(el("h3", { class: "display", style: { fontSize: "15px", margin: 0 } }, "Ingredienti"));
+      const stepper = el("div", { class: "row", style: { gap: "8px" } });
+      const minusBtn = el("button", { class: "icon-btn", html: ICONS.minus, style: { background: "var(--card-dim)", width: "26px", height: "26px", padding: 0 } });
+      const servingsLabel = el("span", { style: { fontSize: "12.5px", minWidth: "60px", textAlign: "center" } }, viewServings + " porz.");
+      const plusBtn = el("button", { class: "icon-btn", html: ICONS.plus, style: { background: "var(--card-dim)", width: "26px", height: "26px", padding: 0 } });
+      minusBtn.addEventListener("click", () => { if (viewServings > 1) { viewServings -= 1; renderDetail(); } });
+      plusBtn.addEventListener("click", () => { if (viewServings < 50) { viewServings += 1; renderDetail(); } });
+      stepper.append(minusBtn, servingsLabel, plusBtn);
+      titleRow.appendChild(stepper);
+      box.appendChild(titleRow);
+
+      const ul = el("ul", { style: { margin: 0, padding: 0, listStyle: "none" } });
+      rec.ingredients.forEach((ing) => {
+        let label;
+        if (typeof ing === "string") label = ing;
+        else {
+          const note = factor !== 1 ? scaleNote(ing.note, factor) : ing.note;
+          label = [note, ing.name].filter(Boolean).join(" · ") || ing.name;
+        }
+        ul.appendChild(el("li", { class: "row", style: { gap: "8px", fontSize: "13.5px", padding: "3px 0" } }, [
+          el("span", { style: { width: "4px", height: "4px", borderRadius: "999px", background: "var(--herb)", flexShrink: 0 } }),
+          label,
+        ]));
+      });
+      box.appendChild(ul);
+      if (factor !== 1) box.appendChild(el("p", { style: { fontSize: "10px", color: "var(--ink-soft)", marginTop: "8px" } }, "Quantità ricalcolate da " + baseServings + " porzioni originali — solo le note con un numero all'inizio vengono scalate."));
+      body.appendChild(box);
+    }
+
+    const startBtn = el("button", { class: "btn-primary", style: { padding: "16px" } }, [
+      "Inizia ", el("span", { html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>' }),
+    ]);
+    startBtn.addEventListener("click", () => { unlockAudio(); goToStep(0); });
+    body.appendChild(startBtn);
+    root.appendChild(body);
+    app.appendChild(root);
+    return;
+  }
+
+  if (route.step >= rec.steps.length) {
+    /* ---- completion slide ---- */
+    const top = el("div", { class: "pz-topbar" }, [
+      el("button", { class: "icon-btn", html: ICONS.x, onclick: exitToHome }),
+      el("div", {}),
+    ]);
+    root.appendChild(top);
+    const body = el("div", { class: "pz-body pz-slide-in", style: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", height: "100%" } });
+    body.appendChild(el("div", { style: { fontSize: "52px", marginBottom: "10px" } }, "🎉"));
+    body.appendChild(el("h1", { class: "display", style: { fontSize: "24px", margin: "0 0 6px" } }, "Ricetta completata!"));
+    body.appendChild(el("p", { style: { fontSize: "13px", color: "var(--ink-soft)", marginBottom: "20px" } }, rec.name));
+    const storyBtn = el("button", { class: "btn-primary", style: { marginBottom: "10px", maxWidth: "300px" } }, [el("span", { html: ICONS.camera }), " Crea una storia con la foto del tuo piatto"]);
+    storyBtn.addEventListener("click", () => { route = { screen: "story-create", selectedId: rec.id }; render(); });
+    const redo = el("button", { class: "btn-ghost", style: { marginBottom: "10px", maxWidth: "260px" } }, "Rivedi i passaggi");
+    redo.addEventListener("click", () => goToStep(0));
+    const home = el("button", { class: "btn-ghost", style: { maxWidth: "260px", color: "var(--ink-soft)" } }, "Torna alle ricette");
+    home.addEventListener("click", exitToHome);
+    body.append(storyBtn, redo, home);
+    root.appendChild(body);
+    app.appendChild(root);
+    return;
+  }
+
+  /* ---- step slide ---- */
+  const step = rec.steps[route.step];
+  const top = el("div", { class: "pz-topbar" }, [
+    el("button", { class: "icon-btn", html: ICONS.x, onclick: exitToHome }),
+    el("span", { style: { fontSize: "12px", color: "var(--ink-soft)" } }, (route.step + 1) + " / " + rec.steps.length),
+  ]);
+  root.appendChild(top);
+
+  const progress = el("div", { class: "pz-progress" });
+  rec.steps.forEach((s, i) => {
+    progress.appendChild(el("div", { class: "pz-progress-seg" + (i < route.step ? " done" : i === route.step ? " current" : "") }));
+  });
+  root.appendChild(progress);
+
+  const body = el("div", { class: "pz-body pz-slide-in pz-center" });
+  if (step.image) body.appendChild(el("div", { class: "pz-hero", style: { height: "200px", width: "100%" } }, [
+    el("img", { src: step.image, style: { width: "100%", height: "100%", objectFit: "cover" } }),
+  ]));
+  body.appendChild(el("div", { class: "pz-stepbig" }, String(route.step + 1).padStart(2, "0")));
+  body.appendChild(el("p", { class: "pz-stepnum" }, "Passaggio " + (route.step + 1)));
+  body.appendChild(el("p", { style: { fontSize: "19px", lineHeight: "1.6", margin: "8px 0 4px", maxWidth: "360px" } }, step.text));
+  if (step.hasTimer) body.appendChild(stepTimerBlock(step));
+  root.appendChild(body);
+
+  const navbar = el("div", { class: "pz-navbar" });
+  const backBtn = el("button", { class: "pz-nav-btn back" }, "Indietro");
+  backBtn.addEventListener("click", () => goToStep(route.step - 1));
+  const nextBtn = el("button", { class: "pz-nav-btn next" }, route.step === rec.steps.length - 1 ? "Fine" : "Avanti");
+  nextBtn.addEventListener("click", () => goToStep(route.step + 1));
+  navbar.append(backBtn, nextBtn);
+  root.appendChild(navbar);
+
+  app.appendChild(root);
+}
+
+/* ---------------- story create ---------------- */
+function renderStoryCreate() {
+  app.innerHTML = "";
+  const rec = getRecipeById(route.selectedId);
+  const backTo = () => { if (rec) { timers = {}; route = { screen: "detail", selectedId: rec.id, step: rec.steps.length }; } else { route = { screen: "home", selectedId: null }; } render(); };
+  app.appendChild(header({ title: "Nuova storia", back: true, onBack: backTo }));
+  const body = el("div", { style: { padding: "0 20px" } });
+  if (!rec) {
+    body.appendChild(el("p", { style: { fontSize: "13px", color: "var(--ink-soft)" } }, "Ricetta non trovata."));
+    app.appendChild(body);
+    return;
+  }
+  body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", marginBottom: "14px" } },
+    "La storia sarà collegata a \"" + rec.name + "\" e sparirà automaticamente dopo 24 ore."));
+
+  let storyImage = null;
+  const photoLabel = el("label", { class: "card", style: { width: "100%", height: "280px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginBottom: "16px", overflow: "hidden" } });
+  photoLabel.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--ink-soft)">' + ICONS.camera + '<span style="font-size:13px">Scatta o scegli una foto del piatto</span></div>';
+  const photoInput = el("input", { type: "file", accept: "image/*", capture: "environment", style: { display: "none" } });
+  const publishBtn = el("button", { class: "btn-primary" }, "Pubblica storia");
+  publishBtn.disabled = true;
+  photoInput.addEventListener("change", (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    compressImage(file, 900, 0.65).then((dataUrl) => {
+      storyImage = dataUrl;
+      photoLabel.innerHTML = "";
+      photoLabel.appendChild(el("img", { src: dataUrl, style: { width: "100%", height: "100%", objectFit: "cover" } }));
+      photoLabel.appendChild(photoInput);
+      publishBtn.disabled = false;
+    }).catch((err) => console.error(err));
+  });
+  photoLabel.appendChild(photoInput);
+  body.appendChild(photoLabel);
+
+  publishBtn.addEventListener("click", () => {
+    if (!storyImage) return;
+    publishBtn.disabled = true;
+    publishBtn.textContent = "Pubblicazione…";
+    publishStory(rec, storyImage).then(() => {
+      route = { screen: "stories", selectedId: null };
+      render();
+    }).catch((e) => {
+      console.error(e);
+      banner = { type: "error", text: "Pubblicazione storia non riuscita: " + e.code };
+      publishBtn.disabled = false;
+      publishBtn.textContent = "Pubblica storia";
+    });
+  });
+  body.appendChild(publishBtn);
+  app.appendChild(body);
+}
+
+/* ---------------- stories feed ---------------- */
+function renderStories() {
+  app.innerHTML = "";
+  const stickyWrap = el("div", { style: { position: "sticky", top: "0", zIndex: "5", background: "var(--bg)", borderBottom: "1px solid var(--line)", paddingBottom: "10px" } });
+  const top = el("div", { class: "row", style: { justifyContent: "space-between", padding: "22px 20px 4px" } });
+  const menuBtn = el("button", { class: "icon-btn", html: ICONS.menu, style: { color: "var(--ink)" } });
+  menuBtn.addEventListener("click", () => { drawerOpen = true; renderDrawer(); });
+  top.append(menuBtn, el("h2", { class: "display", style: { fontSize: "19px" } }, "Storie"), el("div", { style: { width: "22px" } }));
+  stickyWrap.appendChild(top);
+  app.appendChild(stickyWrap);
+
+  const body = el("div", { style: { padding: "14px 20px 90px" } });
+
+  if (stories.length === 0) {
+    body.appendChild(el("div", { style: { textAlign: "center", padding: "70px 30px", color: "var(--ink-soft)" } }, [
+      el("div", { html: ICONS.camera, style: { display: "flex", justifyContent: "center", marginBottom: "10px" } }),
+      el("p", { style: { fontSize: "13px" } }, "Nessuna storia nelle ultime 24 ore. Finisci una ricetta e pubblica la foto del tuo piatto!"),
+    ]));
+  } else {
+    stories.forEach((s) => body.appendChild(storyPostCard(s)));
+  }
+  app.appendChild(body);
+  renderBottomTabBar("stories");
+}
+
+function storyPostCard(s) {
+  const card = el("div", { class: "card", style: { marginBottom: "18px", overflow: "visible" } });
+
+  const cardTop = el("div", { class: "row", style: { justifyContent: "space-between", padding: "12px 14px" } });
+  const authorBtn = el("button", { class: "row", style: { gap: "10px" } }, [
+    el("div", { style: { width: "34px", height: "34px", borderRadius: "999px", overflow: "hidden", flexShrink: 0, border: "2px solid var(--saffron)" } }, [
+      el("img", { src: s.image, style: { width: "100%", height: "100%", objectFit: "cover" } }),
+    ]),
+    el("div", {}, [
+      el("p", { style: { fontSize: "13px", fontWeight: 600, margin: 0 } }, s.authorName),
+      el("p", { style: { fontSize: "10.5px", color: "var(--ink-soft)", margin: 0 } }, timeAgo(s.createdAt) + " · sparisce tra 24h"),
+    ]),
+  ]);
+  authorBtn.addEventListener("click", () => { route = { screen: "profile", selectedId: null, viewUid: s.authorUid }; render(); });
+  cardTop.appendChild(authorBtn);
+  if (s.authorUid === currentUid) {
+    const delBtn = el("button", { html: ICONS.trash, style: { color: "var(--ink-soft)" } });
+    delBtn.addEventListener("click", () => deleteStory(s.id));
+    cardTop.appendChild(delBtn);
+  }
+  card.appendChild(cardTop);
+
+  card.appendChild(el("div", { style: { width: "100%", aspectRatio: "1 / 1", background: "var(--card-dim)" } }, [
+    el("img", { src: s.image, style: { width: "100%", height: "100%", objectFit: "cover" } }),
+  ]));
+
+  const bottom = el("div", { style: { padding: "12px 14px" } });
+  bottom.appendChild(el("p", { style: { fontSize: "13px", margin: "0 0 10px" } }, [
+    el("strong", {}, s.authorName), " ha cucinato ", el("strong", {}, s.recipeName),
+  ]));
+  const recipeBtn = el("button", { class: "btn-primary", style: { padding: "11px" } }, "Vai alla ricetta");
+  recipeBtn.addEventListener("click", () => {
+    timers = {};
+    route = { screen: "detail", selectedId: s.recipeId, step: -1 };
+    render();
+  });
+  bottom.appendChild(recipeBtn);
+  card.appendChild(bottom);
+
+  return card;
+}
+
+/* ---------------- profile ---------------- */
+function renderFollowList() {
+  app.innerHTML = "";
+  const uid = route.viewUid;
+  const mode = route.listMode;
+  app.appendChild(header({
+    title: mode === "followers" ? "Follower" : "Seguiti",
+    back: true,
+    onBack: () => { route = { screen: "profile", selectedId: null, viewUid: uid }; render(); },
+  }));
+  const body = el("div", { style: { padding: "0 20px 40px" } });
+  const loadingP = el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", textAlign: "center", padding: "40px 0" } }, "Caricamento…");
+  body.appendChild(loadingP);
+  app.appendChild(body);
+
+  const field = mode === "followers" ? "targetUid" : "followerUid";
+  const pickField = mode === "followers" ? "followerUid" : "targetUid";
+  fdb.collection("follows").where(field, "==", uid).get().then((snap) => {
+    body.innerHTML = "";
+    const ids = snap.docs.map((d) => d.data()[pickField]);
+    if (ids.length === 0) {
+      body.appendChild(el("p", { style: { fontSize: "13px", color: "var(--ink-soft)", textAlign: "center", padding: "40px 0" } },
+        mode === "followers" ? "Nessun follower ancora." : "Non segui ancora nessuno."));
+      return;
+    }
+    ids.forEach((otherUid) => {
+      const row = el("button", { class: "row", style: { gap: "12px", padding: "10px 0", width: "100%", borderBottom: "1px solid var(--line)" } });
+      const av = el("div", { style: { width: "38px", height: "38px", borderRadius: "999px", overflow: "hidden", flexShrink: 0, background: "var(--card-dim)", display: "flex", alignItems: "center", justifyContent: "center" } });
+      av.innerHTML = ICONS.chef;
+      const nameEl = el("span", { style: { fontSize: "14px" } }, "…");
+      row.append(av, nameEl);
+      row.addEventListener("click", () => { route = { screen: "profile", selectedId: null, viewUid: otherUid }; render(); });
+      body.appendChild(row);
+      fetchProfile(otherUid, (p) => {
+        nameEl.textContent = p.displayName;
+        if (p.photoURL) { av.innerHTML = ""; av.appendChild(el("img", { src: p.photoURL, style: { width: "100%", height: "100%", objectFit: "cover" } })); }
+      });
+    });
+  }).catch((e) => {
+    console.error(e);
+    body.innerHTML = "";
+    body.appendChild(el("p", { style: { fontSize: "13px", color: "var(--clay)", textAlign: "center", padding: "40px 0" } }, "Caricamento non riuscito: " + e.code));
+  });
+}
+
+function renderExclusiveGrid(body, list, isMine) {
+  if (list.length === 0) {
+    body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)" } },
+      isMine ? "Non hai ancora ricette esclusive. Spuntale come tali in fase di creazione." : "Nessuna ricetta esclusiva ancora."));
+  } else {
+    const grid = el("div", { class: "recipe-grid" });
+    list.forEach((r) => grid.appendChild(recipeCard(r)));
+    body.appendChild(grid);
+  }
+}
+
+function renderProfile() {
+  app.innerHTML = "";
+  const uid = route.viewUid || currentUid;
+  const isMe = uid === currentUid;
+
+  const stickyWrap = el("div", { style: { position: "sticky", top: "0", zIndex: "5", background: "var(--bg)", borderBottom: "1px solid var(--line)", paddingBottom: "10px" } });
+  const top = el("div", { class: "row", style: { justifyContent: "space-between", padding: "22px 20px 4px" } });
+  const leftBtn = isMe
+    ? el("div", { style: { width: "22px" } })
+    : el("button", { class: "icon-btn", html: ICONS.chevronLeft, onclick: () => { route = { screen: "home", selectedId: null }; render(); } });
+  top.append(leftBtn, el("h2", { class: "display", style: { fontSize: "18px" } }, "Profilo"),
+    isMe
+      ? el("button", { class: "icon-btn", html: ICONS.gear, onclick: () => { drawerOpen = true; renderDrawer(); } })
+      : el("div", { style: { width: "22px" } })
+  );
+  stickyWrap.appendChild(top);
+
+  if (isMe) {
+    const searchRow = el("div", { style: { padding: "10px 20px 0" } });
+    const searchWrap = el("div", { class: "search-wrap", style: { marginBottom: "0" } });
+    searchWrap.innerHTML = ICONS.search;
+    const userSearchInput = el("input", { class: "search-input", placeholder: "Cerca un utente..." });
+    searchWrap.appendChild(userSearchInput);
+    searchRow.appendChild(searchWrap);
+    const resultsBox = el("div", { style: { marginTop: "8px" } });
+    searchRow.appendChild(resultsBox);
+    stickyWrap.appendChild(searchRow);
+
+    let allProfiles = null;
+    userSearchInput.addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      resultsBox.innerHTML = "";
+      if (!q) return;
+      const renderResults = () => {
+        const matches = allProfiles.filter((p) => p.id !== currentUid && (p.displayName || "").toLowerCase().includes(q)).slice(0, 12);
+        if (matches.length === 0) {
+          resultsBox.appendChild(el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", padding: "8px 2px" } }, "Nessun utente trovato."));
+          return;
+        }
+        matches.forEach((p) => {
+          const row = el("button", { class: "row", style: { gap: "10px", padding: "8px 2px", width: "100%" } });
+          const av = el("div", { style: { width: "32px", height: "32px", borderRadius: "999px", overflow: "hidden", flexShrink: 0, background: "var(--card-dim)", display: "flex", alignItems: "center", justifyContent: "center" } });
+          if (p.photoURL) av.appendChild(el("img", { src: p.photoURL, style: { width: "100%", height: "100%", objectFit: "cover" } }));
+          else av.innerHTML = ICONS.chef;
+          row.append(av, el("span", { style: { fontSize: "13.5px" } }, p.displayName || "Utente"));
+          row.addEventListener("click", () => { route = { screen: "profile", selectedId: null, viewUid: p.id }; render(); });
+          resultsBox.appendChild(row);
+        });
+      };
+      if (allProfiles) { renderResults(); return; }
+      resultsBox.appendChild(el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", padding: "8px 2px" } }, "Cerco…"));
+      fdb.collection("profiles").limit(300).get().then((snap) => {
+        allProfiles = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        resultsBox.innerHTML = "";
+        renderResults();
+      }).catch((err) => {
+        console.error(err);
+        resultsBox.innerHTML = "";
+        resultsBox.appendChild(el("p", { style: { fontSize: "12px", color: "var(--clay)", padding: "8px 2px" } }, "Ricerca non riuscita."));
+      });
+    });
+  }
+
+  app.appendChild(stickyWrap);
+
+  const body = el("div", { style: { padding: "10px 20px 90px" } });
+  const loadingP = el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", textAlign: "center", padding: "40px 0" } }, "Caricamento…");
+  body.appendChild(loadingP);
+  app.appendChild(body);
+
+  fetchProfile(uid, (profile) => {
+    body.innerHTML = "";
+
+    const head = el("div", { class: "row", style: { gap: "16px", marginBottom: "16px" } });
+    const avatarWrap = el("div", { class: "profile-avatar-lg" });
+    if (profile.photoURL) avatarWrap.appendChild(el("img", { src: profile.photoURL }));
+    else avatarWrap.innerHTML = ICONS.chef;
+    head.appendChild(avatarWrap);
+
+    const statsRow = el("div", { class: "row", style: { flex: 1 } });
+    const recipesStat = el("div", { class: "profile-stat" }, [el("b", { id: "exclusive-count" }, isMe ? String(myExclusiveRecipes.length) : "…"), el("span", {}, "Esclusive")]);
+    const followersStat = el("button", { class: "profile-stat" }, [el("b", { id: "followers-count" }, "…"), el("span", {}, "Follower")]);
+    followersStat.addEventListener("click", () => { route = { screen: "follow-list", selectedId: null, viewUid: uid, listMode: "followers" }; render(); });
+    const followingStat = el("button", { class: "profile-stat" }, [el("b", { id: "following-count" }, "…"), el("span", {}, "Seguiti")]);
+    followingStat.addEventListener("click", () => { route = { screen: "follow-list", selectedId: null, viewUid: uid, listMode: "following" }; render(); });
+    statsRow.append(recipesStat, followersStat, followingStat);
+    head.appendChild(statsRow);
+    body.appendChild(head);
+
+    countFollowers(uid, (n) => { const elx = document.getElementById("followers-count"); if (elx) elx.textContent = n; });
+    countFollowing(uid, (n) => { const elx = document.getElementById("following-count"); if (elx) elx.textContent = n; });
+
+    body.appendChild(el("h3", { class: "display", style: { fontSize: "19px", margin: "0 0 14px" } }, profile.displayName));
+
+    if (isMe) {
+      const editBtn = el("button", { class: "btn-ghost", style: { marginBottom: "22px" } }, "Modifica profilo");
+      editBtn.addEventListener("click", () => { route = { screen: "profile-edit", selectedId: null }; render(); });
+      body.appendChild(editBtn);
+    } else {
+      const following = myFollowing.includes(uid);
+      const followBtn = el("button", { class: following ? "btn-ghost" : "btn-primary", style: { marginBottom: "22px" } }, following ? "Segui già ✓" : "Segui");
+      followBtn.addEventListener("click", () => { toggleFollow(uid); setTimeout(() => renderProfile(), 150); });
+      body.appendChild(followBtn);
+    }
+
+    body.appendChild(el("h3", { class: "display", style: { fontSize: "16px", margin: "0 0 12px" } }, isMe ? "Le tue ricette esclusive" : "Ricette esclusive"));
+
+    const canSee = isMe || myFollowing.includes(uid) || AUTH_EMAIL === ADMIN_EMAIL;
+    if (!canSee) {
+      body.appendChild(el("div", { class: "locked-box" }, [
+        el("div", { html: ICONS.lock, style: { display: "flex", justifyContent: "center", marginBottom: "8px" } }),
+        el("p", { style: { fontSize: "13px" } }, "Segui " + profile.displayName + " per vedere le sue ricette esclusive."),
+      ]));
+    } else if (isMe) {
+      renderExclusiveGrid(body, myExclusiveRecipes, true);
+    } else {
+      const loadingEx = el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)" } }, "Caricamento…");
+      body.appendChild(loadingEx);
+      fetchExclusiveFor(uid, (list) => {
+        loadingEx.remove();
+        const countEl = document.getElementById("exclusive-count");
+        if (countEl) countEl.textContent = list.length;
+        renderExclusiveGrid(body, list, false);
+      });
+    }
+  });
+
+  renderBottomTabBar(isMe ? "profile" : null);
+}
+
+function renderProfileEdit() {
+  app.innerHTML = "";
+  app.appendChild(header({ title: "Modifica profilo", back: true, onBack: () => { route = { screen: "profile", selectedId: null, viewUid: currentUid }; render(); } }));
+  const body = el("div", { style: { padding: "0 20px" } });
+
+  let newPhoto = profileCache[currentUid]?.photoURL || AUTH_PHOTO || null;
+  const photoLabel = el("label", { class: "profile-avatar-lg", style: { cursor: "pointer", margin: "0 auto 18px", display: "flex" } });
+  if (newPhoto) photoLabel.appendChild(el("img", { src: newPhoto }));
+  else photoLabel.innerHTML = ICONS.chef;
+  const photoInput = el("input", { type: "file", accept: "image/*", style: { display: "none" } });
+  photoInput.addEventListener("change", (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    compressImage(file, 400, 0.7).then((dataUrl) => {
+      newPhoto = dataUrl;
+      photoLabel.innerHTML = "";
+      photoLabel.appendChild(el("img", { src: dataUrl }));
+      photoLabel.appendChild(photoInput);
+    });
+  });
+  photoLabel.appendChild(photoInput);
+  body.appendChild(photoLabel);
+
+  body.appendChild(el("label", { style: { fontSize: "11.5px", color: "var(--ink-soft)", display: "block", marginBottom: "6px" } }, "Nome visualizzato"));
+  const nameInput = el("input", { class: "field", value: profileCache[currentUid]?.displayName || AUTH_USER, style: { marginBottom: "20px" } });
+  body.appendChild(nameInput);
+
+  const saveBtn = el("button", { class: "btn-primary" }, "Salva profilo");
+  saveBtn.addEventListener("click", () => {
+    const name = nameInput.value.trim() || AUTH_USER;
+    saveBtn.disabled = true;
+    fdb.collection("profiles").doc(currentUid).set({ displayName: name, photoURL: newPhoto || null }, { merge: true })
+      .then(() => {
+        profileCache[currentUid] = { displayName: name, photoURL: newPhoto || null };
+        AUTH_USER = name;
+        route = { screen: "profile", selectedId: null, viewUid: currentUid };
+        render();
+      })
+      .catch((e) => { console.error(e); banner = { type: "error", text: "Salvataggio profilo non riuscito: " + e.code }; saveBtn.disabled = false; renderProfileEdit(); });
+  });
+  body.appendChild(saveBtn);
+  app.appendChild(body);
+}
+
+/* ---------------- weekly planner screen ---------------- */
+function openRecipePickerForDay(dayKey, dayLabel) {
+  const existing = document.getElementById("recipe-picker-sheet");
+  if (existing) existing.remove();
+
+  const backdrop = el("div", { class: "drawer-backdrop", id: "recipe-picker-sheet" });
+  const panel = el("div", {
+    style: { position: "fixed", left: "50%", bottom: "0", transform: "translateX(-50%)", width: "100%", maxWidth: "480px", maxHeight: "75vh", background: "var(--card)", borderRadius: "18px 18px 0 0", zIndex: "41", display: "flex", flexDirection: "column", boxShadow: "0 -10px 30px rgba(0,0,0,.2)" },
+    onclick: (e) => e.stopPropagation(),
+  });
+  backdrop.addEventListener("click", () => backdrop.remove());
+
+  panel.appendChild(el("div", { style: { padding: "18px 20px 10px" } }, [
+    el("h3", { class: "display", style: { fontSize: "17px", margin: 0 } }, "Aggiungi a " + dayLabel),
+  ]));
+
+  const searchWrap = el("div", { class: "search-wrap", style: { margin: "0 20px 10px" } });
+  searchWrap.innerHTML = ICONS.search;
+  const q = el("input", { class: "search-input", placeholder: "Cerca ricetta..." });
+  searchWrap.appendChild(q);
+  panel.appendChild(searchWrap);
+
+  const list = el("div", { style: { overflowY: "auto", flex: "1", padding: "0 20px 20px" } });
+  panel.appendChild(list);
+
+  function renderList() {
+    list.innerHTML = "";
+    const query = q.value.trim().toLowerCase();
+    const pool = [...recipes, ...myExclusiveRecipes.filter((r) => !recipes.some((x) => x.id === r.id))];
+    const items = pool.filter((r) => !query || r.name.toLowerCase().includes(query)).slice(0, 40);
+    if (items.length === 0) {
+      list.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", padding: "10px 0" } }, "Nessuna ricetta trovata."));
+      return;
+    }
+    items.forEach((r) => {
+      const row = el("button", { class: "row", style: { width: "100%", padding: "10px 2px", borderBottom: "1px solid var(--line)", textAlign: "left" } }, [
+        el("span", { style: { fontSize: "13.5px" } }, r.name),
+      ]);
+      row.addEventListener("click", () => { addToPlan(dayKey, r.id); backdrop.remove(); });
+      list.appendChild(row);
+    });
+  }
+  q.addEventListener("input", renderList);
+  renderList();
+
+  backdrop.appendChild(panel);
+  document.body.appendChild(backdrop);
+}
+
+function renderPlanner() {
+  app.innerHTML = "";
+  app.appendChild(header({ title: "Pianificazione settimanale", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
+  const body = el("div", { style: { padding: "0 20px 40px" } });
+
+  const hasAny = PLAN_DAYS.some((d) => (mealPlan[d.key] || []).length > 0);
+  if (hasAny) {
+    const clearBtn = el("button", { class: "btn-ghost", style: { marginBottom: "14px", color: "var(--clay)", borderColor: "var(--clay)" } }, "Svuota la settimana");
+    clearBtn.addEventListener("click", clearMealPlan);
+    body.appendChild(clearBtn);
+  }
+
+  PLAN_DAYS.forEach((d) => {
+    const card = el("div", { class: "card", style: { padding: "12px 14px", marginBottom: "12px", overflow: "visible" } });
+    const head = el("div", { class: "row", style: { justifyContent: "space-between", marginBottom: "6px" } });
+    head.appendChild(el("h3", { class: "display", style: { fontSize: "15px", margin: 0 } }, d.label));
+    const addBtn = el("button", { class: "icon-btn", html: ICONS.plus, style: { background: "var(--card-dim)", width: "28px", height: "28px", padding: 0 } });
+    addBtn.addEventListener("click", () => openRecipePickerForDay(d.key, d.label));
+    head.appendChild(addBtn);
+    card.appendChild(head);
+
+    const ids = mealPlan[d.key] || [];
+    if (ids.length === 0) {
+      card.appendChild(el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", margin: 0 } }, "Nessuna ricetta pianificata."));
+    } else {
+      ids.forEach((id) => {
+        const rec = getRecipeById(id);
+        const row = el("div", { class: "row", style: { justifyContent: "space-between", padding: "6px 0", borderTop: "1px solid var(--line)" } });
+        const nameBtn = el("button", { style: { fontSize: "13.5px", textAlign: "left", flex: 1 } }, rec ? rec.name : "Ricetta non più disponibile");
+        if (rec) nameBtn.addEventListener("click", () => { timers = {}; viewServings = null; route = { screen: "detail", selectedId: rec.id, step: -1 }; render(); });
+        const rm = el("button", { html: ICONS.x, style: { color: "var(--ink-soft)" } });
+        rm.addEventListener("click", () => removeFromPlan(d.key, id));
+        row.append(nameBtn, rm);
+        card.appendChild(row);
+      });
+    }
+    body.appendChild(card);
+  });
+
+  app.appendChild(body);
+}
+
+/* ---------------- shopping list screen ---------------- */
+function renderShoppingList() {
+  app.innerHTML = "";
+  app.appendChild(header({ title: "Lista della spesa", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
+  const body = el("div", { style: { padding: "0 20px 40px" } });
+
+  if (shoppingItems.length === 0) {
+    body.appendChild(el("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--ink-soft)" } }, [
+      el("div", { html: ICONS.cart, style: { display: "flex", justifyContent: "center", marginBottom: "10px" } }),
+      el("p", { style: { fontSize: "13px" } }, "Lista vuota. Apri una ricetta e tocca \"Aggiungi alla spesa\"."),
+    ]));
+    app.appendChild(body);
+    return;
+  }
+
+  const actionsRow = el("div", { class: "row", style: { gap: "8px", marginBottom: "6px" } });
+  const clearCheckedBtn = el("button", { class: "btn-ghost", style: { flex: 1 } }, "Rimuovi spuntati");
+  clearCheckedBtn.addEventListener("click", clearCheckedShoppingItems);
+  const clearAllBtn = el("button", { class: "btn-ghost", style: { flex: 1, color: "var(--clay)", borderColor: "var(--clay)" } }, "Svuota tutto");
+  clearAllBtn.addEventListener("click", clearShoppingList);
+  actionsRow.append(clearCheckedBtn, clearAllBtn);
+  body.appendChild(actionsRow);
+
+  const sorted = [...shoppingItems].sort((a, b) => Number(a.checked) - Number(b.checked));
+  const list = el("div", { style: { marginTop: "10px" } });
+  sorted.forEach((item) => {
+    const row = el("div", { class: "shop-row" });
+    const check = el("button", { class: "shop-check" + (item.checked ? " checked" : ""), html: item.checked ? ICONS.check : "" });
+    check.addEventListener("click", () => toggleShoppingItem(item.id));
+
+    const textCol = el("div", { class: "shop-text" });
+    if (item.name) {
+      const mainLine = item.grams > 0 ? formatGrams(item.grams) + " " + item.name : item.name;
+      textCol.appendChild(el("p", { class: "note" + (item.checked ? " checked" : ""), style: { margin: 0, fontWeight: 600 } }, mainLine));
+      if (item.extraNotes && item.extraNotes.length) {
+        item.extraNotes.forEach((n) => {
+          textCol.appendChild(el("p", { style: { fontSize: "12px", color: "var(--ink-soft)", margin: "2px 0 0" } }, "+ " + n.note + " (" + n.recipeName + ")"));
+        });
+      }
+      textCol.appendChild(el("p", { class: "from", style: { margin: "1px 0 0" } }, "da " + (item.recipes || []).join(", ")));
+    } else {
+      textCol.appendChild(el("p", { class: "note" + (item.checked ? " checked" : ""), style: { margin: 0 } }, item.note));
+      textCol.appendChild(el("p", { class: "from", style: { margin: "1px 0 0" } }, "da " + item.recipeName));
+    }
+
+    const rm = el("button", { html: ICONS.x, style: { color: "var(--ink-soft)" } });
+    rm.addEventListener("click", () => removeShoppingItem(item.id));
+    row.append(check, textCol, rm);
+    list.appendChild(row);
+  });
+  body.appendChild(list);
+  app.appendChild(body);
+}
+
+/* ---------------- favorites ---------------- */
+function renderFavorites() {
+  app.innerHTML = "";
+  app.appendChild(header({ title: "Preferiti", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
+  const body = el("div", { style: { padding: "0 20px 90px" } });
+  let list = recipes.filter((r) => myFavorites.includes(r.id));
+  list = [...list].sort((a, b) => (Array.isArray(b.votedBy) ? b.votedBy.length : 0) - (Array.isArray(a.votedBy) ? a.votedBy.length : 0));
+  if (list.length === 0) {
+    body.appendChild(el("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--ink-soft)" } }, [
+      el("p", { style: { fontSize: "13px" } }, "Nessuna ricetta nei preferiti ancora. Tocca il cuore su una ricetta per salvarla qui."),
+    ]));
+  } else {
+    const grid = el("div", { class: "recipe-grid" });
+    list.forEach((r) => grid.appendChild(recipeCard(r)));
+    body.appendChild(grid);
+  }
+  app.appendChild(body);
+  renderBottomTabBar("favorites");
+}
+
+/* ---------------- backup / bulk import (admin) ---------------- */
+function downloadJSON(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = el("a", { href: url, download: filename, style: { display: "none" } });
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+}
+
+function renderBackup() {
+  app.innerHTML = "";
+  app.appendChild(header({ title: "Backup ricette", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
+  const body = el("div", { style: { padding: "0 20px 90px" } });
+  const bn = bannerNode();
+  if (bn) body.appendChild(bn);
+
+  body.appendChild(el("h3", { class: "display", style: { fontSize: "16px", margin: "4px 0 8px", color: "var(--clay)" } }, "Zona pericolosa"));
+  body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", marginBottom: "10px" } },
+    "Elimina tutte le ricette di tutti gli utenti. Non è reversibile — fai prima un'esportazione se vuoi una copia."));
+  const wipeStatus = el("p", { style: { fontSize: "12px", color: "var(--herb)", marginBottom: "8px" } });
+  let wipeConfirming = false, wipeConfirmTimeout = null;
+  const wipeBtn = el("button", { class: "btn-ghost", style: { marginBottom: "26px", color: "var(--clay)", borderColor: "var(--clay)" } }, "Elimina TUTTE le ricette");
+  wipeBtn.addEventListener("click", () => {
+    if (!wipeConfirming) {
+      wipeConfirming = true;
+      wipeBtn.textContent = "Tocca di nuovo per confermare";
+      wipeConfirmTimeout = setTimeout(() => { wipeConfirming = false; wipeBtn.textContent = "Elimina TUTTE le ricette"; }, 4000);
+      return;
+    }
+    clearTimeout(wipeConfirmTimeout);
+    wipeBtn.disabled = true;
+    wipeStatus.textContent = "Eliminazione in corso…";
+    fdb.collection("recipes").limit(300).get().then((snap) => {
+      let done = 0;
+      const delNext = (i) => {
+        if (i >= snap.docs.length) { wipeStatus.textContent = "Eliminate " + done + " ricette."; wipeBtn.disabled = false; wipeBtn.textContent = "Elimina TUTTE le ricette"; return; }
+        snap.docs[i].ref.delete().then(() => { done++; delNext(i + 1); }).catch(() => delNext(i + 1));
+      };
+      delNext(0);
+    }).catch((e) => {
+      console.error(e);
+      wipeStatus.style.color = "var(--clay)";
+      wipeStatus.textContent = "Eliminazione non riuscita: " + e.code;
+      wipeBtn.disabled = false;
+    });
+  });
+  body.append(wipeStatus, wipeBtn);
+
+  body.appendChild(el("h3", { class: "display", style: { fontSize: "16px", margin: "4px 0 8px" } }, "Riparazione dati"));
+  body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", marginBottom: "12px" } },
+    "Le ricette create prima di oggi non hanno il campo \"esclusiva\": questo le nasconde. Premi una volta per sistemarle tutte (solo la prima volta, dopo non serve più)."));
+  const repairStatus = el("p", { style: { fontSize: "12px", color: "var(--herb)", marginBottom: "8px" } });
+  const repairBtn = el("button", { class: "btn-ghost", style: { marginBottom: "26px" } }, "Ripara ricette esistenti");
+  repairBtn.addEventListener("click", () => {
+    repairBtn.disabled = true;
+    repairStatus.textContent = "Controllo in corso…";
+    fdb.collection("recipes").limit(300).get().then((snap) => {
+      const missing = snap.docs.filter((d) => d.data().exclusive === undefined);
+      if (missing.length === 0) { repairStatus.textContent = "Tutto già a posto, nessuna ricetta da riparare."; repairBtn.disabled = false; return; }
+      let done = 0;
+      const fixNext = (i) => {
+        if (i >= missing.length) { repairStatus.textContent = "Fatto: " + done + " ricette riparate."; repairBtn.disabled = false; return; }
+        missing[i].ref.update({ exclusive: false }).then(() => { done++; fixNext(i + 1); }).catch(() => fixNext(i + 1));
+      };
+      fixNext(0);
+    }).catch((e) => {
+      console.error(e);
+      repairStatus.style.color = "var(--clay)";
+      repairStatus.textContent = "Riparazione non riuscita: " + e.code;
+      repairBtn.disabled = false;
+    });
+  });
+  body.append(repairStatus, repairBtn);
+
+  body.appendChild(el("h3", { class: "display", style: { fontSize: "16px", margin: "4px 0 8px" } }, "Esporta"));
+  body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", marginBottom: "12px" } },
+    "Scarica tutte le ricette attuali (" + recipes.length + ") in un file JSON, da tenere come copia di sicurezza."));
+  const exportBtn = el("button", { class: "btn-ghost", style: { marginBottom: "26px" } }, [el("span", { html: ICONS.download }), " Esporta backup (JSON)"]);
+  exportBtn.addEventListener("click", () => {
+    downloadJSON("cucina-backup-" + new Date().toISOString().slice(0, 10) + ".json", recipes);
+  });
+  body.appendChild(exportBtn);
+
+  body.appendChild(el("h3", { class: "display", style: { fontSize: "16px", margin: "4px 0 8px" } }, "Importa in blocco"));
+  body.appendChild(el("p", { style: { fontSize: "12.5px", color: "var(--ink-soft)", marginBottom: "12px" } },
+    "Carica un file JSON con un elenco di ricette (un backup esportato, o un file preparato apposta) per aggiungerle tutte insieme al database."));
+
+  const status = el("p", { style: { fontSize: "12.5px", color: "var(--herb)", marginBottom: "10px" } });
+  const fileLabel = el("label", { class: "btn-ghost", style: { marginBottom: "8px" } }, [el("span", { html: ICONS.upload }), " Scegli file JSON"]);
+  const fileInput = el("input", { type: "file", accept: "application/json,.json", style: { display: "none" } });
+  let pendingImport = null;
+  const confirmBtn = el("button", { class: "btn-primary", style: { display: "none" } }, "Conferma importazione");
+
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        const list = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.recipes) ? parsed.recipes : null);
+        if (!list || !list.length) throw new Error("Il file non contiene un elenco di ricette valido.");
+        const bad = list.find((r) => !r.name || !Array.isArray(r.steps) || !r.steps.length);
+        if (bad) throw new Error("Ogni ricetta deve avere almeno \"name\" e \"steps\".");
+        pendingImport = list;
+        status.style.color = "var(--herb)";
+        status.textContent = "Pronto: " + list.length + " ricette nel file.";
+        confirmBtn.textContent = "Importa " + list.length + " ricette";
+        confirmBtn.style.display = "flex";
+      } catch (err) {
+        pendingImport = null;
+        confirmBtn.style.display = "none";
+        status.style.color = "var(--clay)";
+        status.textContent = "File non valido: " + err.message;
+      }
+    };
+    reader.readAsText(file);
+  });
+  fileLabel.appendChild(fileInput);
+  body.append(fileLabel, status, confirmBtn);
+
+  confirmBtn.addEventListener("click", () => {
+    if (!pendingImport) return;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Importazione in corso…";
+    const items = pendingImport;
+    let done = 0, failed = 0;
+    const now = Date.now();
+    const writeNext = (i) => {
+      if (i >= items.length) {
+        status.style.color = failed ? "var(--clay)" : "var(--herb)";
+        status.textContent = "Fatto: " + done + " importate" + (failed ? ", " + failed + " fallite." : ".");
+        confirmBtn.style.display = "none";
+        pendingImport = null;
+        return;
+      }
+      const r = items[i];
+      const hasId = !!r.id;
+      const rawCats = Array.isArray(r.categories) ? r.categories : (r.category ? [r.category] : []);
+      const validCats = rawCats.filter((k) => CATEGORIES.some((c) => c.key === k));
+      const normIngredients = Array.isArray(r.ingredients) ? r.ingredients.map((i) => typeof i === "string" ? { name: "", note: i } : { name: i.name || "", note: i.note || "" }) : [];
+      const ingredientNames = normIngredients.filter((i) => i.name).map((i) => i.name.toLowerCase());
+      const data = {
+        name: r.name,
+        categories: validCats.length ? validCats : [CATEGORIES[0].key],
+        exclusive: !!r.exclusive,
+        coverImage: r.coverImage || null,
+        ingredients: normIngredients,
+        ingredientNames: ingredientNames,
+        steps: r.steps.map((s) => ({
+          id: s.id || rid(), text: s.text || "", hasTimer: !!s.hasTimer,
+          minutes: Number(s.minutes) || 0, seconds: Number(s.seconds) || 0, image: s.image || null,
+        })),
+        author: hasId && r.author ? r.author : AUTH_USER,
+        authorUid: hasId && r.authorUid ? r.authorUid : currentUid,
+        createdAt: hasId && r.createdAt ? r.createdAt : now + i,
+      };
+      const ref = hasId ? fdb.collection("recipes").doc(r.id) : fdb.collection("recipes").doc();
+      ref.set(data).then(() => { done++; writeNext(i + 1); }).catch((e) => { console.error(e); failed++; writeNext(i + 1); });
+    };
+    writeNext(0);
+  });
+
+  app.appendChild(body);
+  renderBottomTabBar(null);
+}
+
+/* ---------------- boot ---------------- */
+function render() {
+  const tb0 = document.getElementById("bottom-tabbar"); if (tb0) tb0.remove();
+  if (route.screen === "login") renderLogin();
+  else if (route.screen === "create") renderCreate();
+  else if (route.screen === "detail") renderDetail();
+  else if (route.screen === "backup") renderBackup();
+  else if (route.screen === "favorites") renderFavorites();
+  else if (route.screen === "profile") renderProfile();
+  else if (route.screen === "profile-edit") renderProfileEdit();
+  else if (route.screen === "follow-list") renderFollowList();
+  else if (route.screen === "shopping") renderShoppingList();
+  else if (route.screen === "stories") renderStories();
+  else if (route.screen === "story-create") renderStoryCreate();
+  else renderHome();
+}
+function attachSwipeNav() {
+  let startX = 0, startY = 0, tracking = false;
+  document.addEventListener("touchstart", (e) => {
+    if (drawerOpen) { tracking = false; return; }
+    if (!(route.screen === "home" || route.screen === "stories")) { tracking = false; return; }
+    const t = e.touches[0]; startX = t.clientX; startY = t.clientY; tracking = true;
+  }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX, dy = t.clientY - startY;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (dx < 0 && route.screen === "home") { route = { screen: "stories", selectedId: null }; render(); }
+      else if (dx > 0 && route.screen === "stories") { route = { screen: "home", selectedId: null }; render(); }
+    }
+  }, { passive: true });
+}
+attachSwipeNav();
+render();
+initFirebase();
+</script>
+</body>
+</html>
