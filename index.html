@@ -690,7 +690,11 @@ function subscribeShoppingList() {
   );
 }
 function saveShoppingList(items) {
-  fdb.collection("shoppingLists").doc(currentUid).set({ items }).catch((e) => console.error(e));
+  fdb.collection("shoppingLists").doc(currentUid).set({ items }).catch((e) => {
+    console.error(e);
+    banner = { type: "error", text: "Salvataggio lista non riuscito (" + e.code + "). Controlla le regole Firestore per shoppingLists." };
+    renderCurrent();
+  });
 }
 function formatGrams(g) {
   if (g >= 1000) {
@@ -772,7 +776,11 @@ function subscribeMealPlan() {
   );
 }
 function saveMealPlan(days) {
-  fdb.collection("mealPlans").doc(currentUid).set({ days }).catch((e) => console.error(e));
+  fdb.collection("mealPlans").doc(currentUid).set({ days }).catch((e) => {
+    console.error(e);
+    banner = { type: "error", text: "Salvataggio planner non riuscito (" + e.code + "). Controlla le regole Firestore per mealPlans." };
+    renderCurrent();
+  });
 }
 function addToPlan(dayKey, recipeId) {
   const days = { ...mealPlan };
@@ -2335,6 +2343,8 @@ function renderPlanner() {
   app.innerHTML = "";
   app.appendChild(header({ title: "Pianificazione settimanale", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
   const body = el("div", { style: { padding: "0 20px 40px" } });
+  const planBanner = bannerNode();
+  if (planBanner) body.appendChild(planBanner);
 
   const hasAny = PLAN_DAYS.some((d) => (mealPlan[d.key] || []).length > 0);
   if (hasAny) {
@@ -2378,6 +2388,8 @@ function renderShoppingList() {
   app.innerHTML = "";
   app.appendChild(header({ title: "Lista della spesa", back: true, onBack: () => { route = { screen: "home", selectedId: null }; render(); } }));
   const body = el("div", { style: { padding: "0 20px 40px" } });
+  const shopBanner = bannerNode();
+  if (shopBanner) body.appendChild(shopBanner);
 
   if (shoppingItems.length === 0) {
     body.appendChild(el("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--ink-soft)" } }, [
