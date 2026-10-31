@@ -1001,6 +1001,7 @@ function renderCurrent() {
   else if (route.screen === "profile-edit") renderProfileEdit();
   else if (route.screen === "follow-list") renderFollowList();
   else if (route.screen === "shopping") renderShoppingList();
+  else if (route.screen === "planner") renderPlanner();
   else if (route.screen === "stories") renderStories();
   else if (route.screen === "story-create") renderStoryCreate();
   else renderLogin();
@@ -1139,6 +1140,10 @@ function renderDrawer() {
   const shopItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.cart }), "Lista della spesa"]);
   shopItem.addEventListener("click", () => { closeDrawer(); route = { screen: "shopping", selectedId: null }; render(); });
   panel.appendChild(shopItem);
+
+  const planItem = el("button", { class: "drawer-item" }, [el("span", { html: ICONS.calendarDays }), "Pianificazione settimanale"]);
+  planItem.addEventListener("click", () => { closeDrawer(); route = { screen: "planner", selectedId: null }; render(); });
+  panel.appendChild(planItem);
 
   panel.appendChild(el("div", { class: "drawer-section-title" }, "Sfoglia"));
   const catToggle = el("button", { class: "drawer-item", style: { justifyContent: "space-between" } }, [
@@ -2621,6 +2626,7 @@ function render() {
   else if (route.screen === "profile-edit") renderProfileEdit();
   else if (route.screen === "follow-list") renderFollowList();
   else if (route.screen === "shopping") renderShoppingList();
+  else if (route.screen === "planner") renderPlanner();
   else if (route.screen === "stories") renderStories();
   else if (route.screen === "story-create") renderStoryCreate();
   else renderHome();
